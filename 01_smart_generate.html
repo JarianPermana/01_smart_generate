@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Jarian Permana, Tutus Ageng, Ryan Avryandi">
+<meta name="dcterms.date" content="2026-06-03">
+
+<title>SMART Patrol Data Processing Pipeline</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="01_smart_generate_files/libs/clipboard/clipboard.min.js"></script>
+<script src="01_smart_generate_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="01_smart_generate_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="01_smart_generate_files/libs/quarto-html/popper.min.js"></script>
+<script src="01_smart_generate_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="01_smart_generate_files/libs/quarto-html/anchor.min.js"></script>
+<link href="01_smart_generate_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="01_smart_generate_files/libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="01_smart_generate_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="01_smart_generate_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="01_smart_generate_files/libs/bootstrap/bootstrap-293cc809d15782442e9b1098eedb6797.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="01_smart_generate_files/libs/kePrint-0.0.1/kePrint.js"></script>
+
+<link href="01_smart_generate_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+<link href="01_smart_generate_files/libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet">
+
+<script src="01_smart_generate_files/libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a>
+  <ul>
+  <li><a href="#background" id="toc-background" class="nav-link" data-scroll-target="#background">Background</a></li>
+  <li><a href="#purpose-of-this-pipeline" id="toc-purpose-of-this-pipeline" class="nav-link" data-scroll-target="#purpose-of-this-pipeline">Purpose of This Pipeline</a></li>
+  <li><a href="#data-types-processed" id="toc-data-types-processed" class="nav-link" data-scroll-target="#data-types-processed">Data Types Processed</a></li>
+  </ul></li>
+  <li><a href="#system-requirements-and-setup" id="toc-system-requirements-and-setup" class="nav-link" data-scroll-target="#system-requirements-and-setup">System Requirements and Setup</a>
+  <ul>
+  <li><a href="#software-requirements" id="toc-software-requirements" class="nav-link" data-scroll-target="#software-requirements">Software Requirements</a></li>
+  <li><a href="#directory-structure" id="toc-directory-structure" class="nav-link" data-scroll-target="#directory-structure">Directory Structure</a></li>
+  <li><a href="#directory-components" id="toc-directory-components" class="nav-link" data-scroll-target="#directory-components">Directory Components</a></li>
+  <li><a href="#required-r-packages" id="toc-required-r-packages" class="nav-link" data-scroll-target="#required-r-packages">Required R Packages</a></li>
+  <li><a href="#installation-verification" id="toc-installation-verification" class="nav-link" data-scroll-target="#installation-verification">Installation Verification</a></li>
+  </ul></li>
+  <li><a href="#function-reference" id="toc-function-reference" class="nav-link" data-scroll-target="#function-reference">Function Reference</a>
+  <ul>
+  <li><a href="#core-functions-overview" id="toc-core-functions-overview" class="nav-link" data-scroll-target="#core-functions-overview">Core Functions Overview</a></li>
+  <li><a href="#data-cleaning-function" id="toc-data-cleaning-function" class="nav-link" data-scroll-target="#data-cleaning-function">Data Cleaning Function</a></li>
+  <li><a href="#data-distribution-functions" id="toc-data-distribution-functions" class="nav-link" data-scroll-target="#data-distribution-functions">Data Distribution Functions</a>
+  <ul class="collapse">
+  <li><a href="#hierarchical-organization-principle" id="toc-hierarchical-organization-principle" class="nav-link" data-scroll-target="#hierarchical-organization-principle">Hierarchical Organization Principle</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#execution-workflow" id="toc-execution-workflow" class="nav-link" data-scroll-target="#execution-workflow">Execution Workflow</a>
+  <ul>
+  <li><a href="#pipeline-initialization" id="toc-pipeline-initialization" class="nav-link" data-scroll-target="#pipeline-initialization">Pipeline Initialization</a>
+  <ul class="collapse">
+  <li><a href="#phase-1-environment-setup" id="toc-phase-1-environment-setup" class="nav-link" data-scroll-target="#phase-1-environment-setup">Phase 1: Environment Setup</a></li>
+  <li><a href="#phase-2-path-configuration" id="toc-phase-2-path-configuration" class="nav-link" data-scroll-target="#phase-2-path-configuration">Phase 2: Path Configuration</a></li>
+  <li><a href="#phase-3-data-import" id="toc-phase-3-data-import" class="nav-link" data-scroll-target="#phase-3-data-import">Phase 3: Data Import</a></li>
+  <li><a href="#phase-4-data-cleaning" id="toc-phase-4-data-cleaning" class="nav-link" data-scroll-target="#phase-4-data-cleaning">Phase 4: Data Cleaning</a></li>
+  <li><a href="#phase-5-patrol-summary-processing" id="toc-phase-5-patrol-summary-processing" class="nav-link" data-scroll-target="#phase-5-patrol-summary-processing">Phase 5: Patrol Summary Processing</a></li>
+  <li><a href="#phase-6-administrative-classification" id="toc-phase-6-administrative-classification" class="nav-link" data-scroll-target="#phase-6-administrative-classification">Phase 6: Administrative Classification</a></li>
+  <li><a href="#phase-7-temporal-classification" id="toc-phase-7-temporal-classification" class="nav-link" data-scroll-target="#phase-7-temporal-classification">Phase 7: Temporal Classification</a></li>
+  <li><a href="#phase-8-data-distribution" id="toc-phase-8-data-distribution" class="nav-link" data-scroll-target="#phase-8-data-distribution">Phase 8: Data Distribution</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#output-validation" id="toc-output-validation" class="nav-link" data-scroll-target="#output-validation">Output Validation</a>
+  <ul>
+  <li><a href="#expected-output-structure" id="toc-expected-output-structure" class="nav-link" data-scroll-target="#expected-output-structure">Expected Output Structure</a></li>
+  <li><a href="#validation-code" id="toc-validation-code" class="nav-link" data-scroll-target="#validation-code">Validation Code</a></li>
+  </ul></li>
+  <li><a href="#troubleshooting" id="toc-troubleshooting" class="nav-link" data-scroll-target="#troubleshooting">Troubleshooting</a>
+  <ul>
+  <li><a href="#common-errors-and-solutions" id="toc-common-errors-and-solutions" class="nav-link" data-scroll-target="#common-errors-and-solutions">Common Errors and Solutions</a></li>
+  <li><a href="#debugging-mode" id="toc-debugging-mode" class="nav-link" data-scroll-target="#debugging-mode">Debugging Mode</a></li>
+  </ul></li>
+  <li><a href="#best-practices-and-recommendations" id="toc-best-practices-and-recommendations" class="nav-link" data-scroll-target="#best-practices-and-recommendations">Best Practices and Recommendations</a>
+  <ul>
+  <li><a href="#data-quality-assurance" id="toc-data-quality-assurance" class="nav-link" data-scroll-target="#data-quality-assurance">Data Quality Assurance</a></li>
+  <li><a href="#performance-optimization" id="toc-performance-optimization" class="nav-link" data-scroll-target="#performance-optimization">Performance Optimization</a></li>
+  </ul></li>
+  <li><a href="#version-history" id="toc-version-history" class="nav-link" data-scroll-target="#version-history">Version History</a></li>
+  <li><a href="#contact-and-support" id="toc-contact-and-support" class="nav-link" data-scroll-target="#contact-and-support">Contact and Support</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="01_smart_generate.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">SMART Patrol Data Processing Pipeline</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
+<p class="subtitle lead">A Standardized Workflow for Conservation Area Monitoring Data</p>
+</div>
+
+
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Author</div>
+  <div class="quarto-title-meta-heading">Affiliation</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author">Jarian Permana, Tutus Ageng, Ryan Avryandi <a href="mailto:jarian.work.1@gmail.com" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            Fauna &amp; Flora Indonesia Programme
+          </p>
+      </div>
+  </div>
+
+<div class="quarto-title-meta">
+
+      
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 3, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>This document presents a reproducible analytical pipeline for processing SMART (Spatial Monitoring and Reporting Tool) patrol data from conservation areas. The workflow automates data cleaning, spatial processing, and hierarchical distribution of monitoring data. The pipeline processes three primary data categories: patrol summaries, human activity threats, and wildlife observations. Outputs are systematically organized by administrative regions, conservation sites, and temporal sessions, facilitating downstream analysis and reporting.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<section id="background" class="level2">
+<h2 class="anchored" data-anchor-id="background">Background</h2>
+<p>Systematic biodiversity monitoring is essential for assessing protected area management effectiveness and detecting emerging threats (<span class="citation" data-cites="hockings2015">Hockings et al. (<a href="#ref-hockings2015" role="doc-biblioref">2015</a>)</span>). The Spatial Monitoring and Reporting Tool (SMART) has become a global standard for patrolling and data management in conservation areas (<span class="citation" data-cites="stokes2010">Stokes (<a href="#ref-stokes2010" role="doc-biblioref">2010</a>)</span>). SMART integrates spatial data collection with structured reporting, enabling rangers to document wildlife observations, human activities, and patrol efforts systematically across diverse conservation landscapes.</p>
+</section>
+<section id="purpose-of-this-pipeline" class="level2">
+<h2 class="anchored" data-anchor-id="purpose-of-this-pipeline">Purpose of This Pipeline</h2>
+<ol type="1">
+<li>Standardize Data Processing: Automate cleaning and transformation of raw SMART export files into analysis-ready formats</li>
+<li>Integrate Spatial Data: Process patrol track shapefile to calculate spatial metrics including patrol distances</li>
+<li>Hierarchical Organization: Distribute processed data into region → site → session directory structures based on existing data attributes</li>
+<li>Ensure Reproducibility: Provide fully documented code with automated dependency management</li>
+<li>Facilitate Reporting: Generate structured outputs compatible with conservation reporting frameworks</li>
+</ol>
+</section>
+<section id="data-types-processed" class="level2">
+<h2 class="anchored" data-anchor-id="data-types-processed">Data Types Processed</h2>
+<p>The pipeline handles three primary data categories derived from SMART patrol operations:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 27%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"><strong>Data&nbsp;Category</strong></th>
+<th style="text-align: left;"><strong>Description</strong></th>
+<th style="text-align: left;"><strong>Key&nbsp;Variables</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><sup><strong>Patrol&nbsp;Summary</strong></sup></td>
+<td style="text-align: left;"><sup>Spatial&nbsp;tracks&nbsp;and&nbsp;patrol&nbsp;effort&nbsp;metrics</sup></td>
+<td style="text-align: left;"><sup>Distance,&nbsp;patrol&nbsp;duration,&nbsp;team&nbsp;composition,&nbsp;transport&nbsp;mode</sup></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><sup><strong>Threat&nbsp;Records</strong></sup></td>
+<td style="text-align: left;"><sup>Human&nbsp;activity&nbsp;observations</sup></td>
+<td style="text-align: left;"><sup>Threat&nbsp;type,&nbsp;quantity,&nbsp;status,&nbsp;coordinates</sup></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><sup><strong>Biodiversity&nbsp;Records</strong></sup></td>
+<td style="text-align: left;"><sup>Wildlife&nbsp;and&nbsp;flora&nbsp;observations</sup></td>
+<td style="text-align: left;"><sup>Species&nbsp;identification&nbsp;(local&nbsp;and&nbsp;scientific&nbsp;names),&nbsp;counts,&nbsp;condition</sup></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="system-requirements-and-setup" class="level1">
+<h1>System Requirements and Setup</h1>
+<section id="software-requirements" class="level2">
+<h2 class="anchored" data-anchor-id="software-requirements">Software Requirements</h2>
+<p>The pipeline requires the following software environment:</p>
+<ul>
+<li>R Version: 4.0 or higher (R Core Team, 2024)</li>
+<li>RStudio: Recommended for script execution and development</li>
+<li>RTools (Windows): Required for compiling spatial packages</li>
+<li>Operating System: Windows 10/11, macOS, or Linux</li>
+</ul>
+</section>
+<section id="directory-structure" class="level2">
+<h2 class="anchored" data-anchor-id="directory-structure">Directory Structure</h2>
+<p>The pipeline follows a standardized directory structure that separates raw data, analysis scripts, and outputs:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div id="fig-directory" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-directory-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/path_foldering_2.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:80.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-directory-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Complete directory structure of the SMART data processing pipeline showing data flow from input to output
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="directory-components" class="level2">
+<h2 class="anchored" data-anchor-id="directory-components">Directory Components</h2>
+<div class="cell" data-layout-align="center" data-tbl-cap="Directory Components">
+<div class="cell-output-display">
+<table class="table table-condensed caption-top table-sm table-striped small">
+<caption>Directory Components</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Component</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Path</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">**Input Database**</td>
+<td style="text-align: left;">`1_Database/SMART/All Observation/`</td>
+<td style="text-align: left;">Raw SMART CSV and shapefile exports</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">**Analysis Scripts**</td>
+<td style="text-align: left;">`2_Analysis/01_Data_generate/`</td>
+<td style="text-align: left;">Main execution and function scripts</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">**Source Functions**</td>
+<td style="text-align: left;">`code/source/`</td>
+<td style="text-align: left;">Core helper functions for data processing</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">**Output Data**</td>
+<td style="text-align: left;">`data/` &amp; `output/`</td>
+<td style="text-align: left;">Processed results and intermediate files</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">**Documentation**</td>
+<td style="text-align: left;">`*.qmd`</td>
+<td style="text-align: left;">Reproducible workflow documentation</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="required-r-packages" class="level2">
+<h2 class="anchored" data-anchor-id="required-r-packages">Required R Packages</h2>
+<p>The pipeline depends on several R packages for data manipulation, spatial analysis, and date/time processing (Wickham et al., 2019; Pebesma, 2018; Grolemund &amp; Wickham, 2011).</p>
+<p>Core Packages</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>packages_table <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Package =</span> <span class="fu">c</span>(<span class="st">"dplyr"</span>, <span class="st">"sf"</span>, <span class="st">"lubridate"</span>, <span class="st">"readr"</span>, <span class="st">"janitor"</span>, <span class="st">"hms"</span>, <span class="st">"tidyr"</span>, <span class="st">"purrr"</span>),</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Version =</span> <span class="fu">sapply</span>(<span class="fu">c</span>(<span class="st">"dplyr"</span>, <span class="st">"sf"</span>, <span class="st">"lubridate"</span>, <span class="st">"readr"</span>, <span class="st">"janitor"</span>, <span class="st">"hms"</span>, <span class="st">"tidyr"</span>, <span class="st">"purrr"</span>), </span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>                   <span class="cf">function</span>(pkg) <span class="fu">as.character</span>(<span class="fu">packageVersion</span>(pkg))),</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">Purpose =</span> <span class="fu">c</span>(</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Data manipulation and transformation"</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Spatial data handling and shapefile processing"</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Date and time parsing and arithmetic"</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Efficient CSV reading and writing"</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Column name cleaning and data validation"</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Time format handling (HH:MM:SS)"</span>,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Data reshaping and tidying"</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Functional programming and iteration"</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(packages_table, <span class="at">caption =</span> <span class="st">"Core R packages used in the pipeline"</span>, </span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>      <span class="at">booktabs =</span> <span class="cn">TRUE</span>, <span class="at">format =</span> <span class="st">"markdown"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Core R packages used in the pipeline</caption>
+<colgroup>
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 10%">
+<col style="width: 62%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;">Package</th>
+<th style="text-align: left;">Version</th>
+<th style="text-align: left;">Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">dplyr</td>
+<td style="text-align: left;">dplyr</td>
+<td style="text-align: left;">1.2.1</td>
+<td style="text-align: left;">Data manipulation and transformation</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sf</td>
+<td style="text-align: left;">sf</td>
+<td style="text-align: left;">1.1.1</td>
+<td style="text-align: left;">Spatial data handling and shapefile processing</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">lubridate</td>
+<td style="text-align: left;">lubridate</td>
+<td style="text-align: left;">1.9.5</td>
+<td style="text-align: left;">Date and time parsing and arithmetic</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">readr</td>
+<td style="text-align: left;">readr</td>
+<td style="text-align: left;">2.2.0</td>
+<td style="text-align: left;">Efficient CSV reading and writing</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">janitor</td>
+<td style="text-align: left;">janitor</td>
+<td style="text-align: left;">2.2.1</td>
+<td style="text-align: left;">Column name cleaning and data validation</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hms</td>
+<td style="text-align: left;">hms</td>
+<td style="text-align: left;">1.1.4</td>
+<td style="text-align: left;">Time format handling (HH:MM:SS)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">tidyr</td>
+<td style="text-align: left;">tidyr</td>
+<td style="text-align: left;">1.3.2</td>
+<td style="text-align: left;">Data reshaping and tidying</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">purrr</td>
+<td style="text-align: left;">purrr</td>
+<td style="text-align: left;">1.2.2</td>
+<td style="text-align: left;">Functional programming and iteration</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="installation-verification" class="level2">
+<h2 class="anchored" data-anchor-id="installation-verification">Installation Verification</h2>
+<p>Run the following code to verify all required packages are properly installed:</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(janitor, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(hms, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># List required packages</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>required_pkgs <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"dplyr"</span>, <span class="st">"sf"</span>, <span class="st">"lubridate"</span>, <span class="st">"readr"</span>, <span class="st">"janitor"</span>, <span class="st">"hms"</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Check installation status</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>installed_status <span class="ot">&lt;-</span> <span class="fu">sapply</span>(required_pkgs, <span class="cf">function</span>(pkg) {</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">require</span>(pkg, <span class="at">character.only =</span> <span class="cn">TRUE</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)) {</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">"✓ Installed"</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">"✗ Missing"</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Create output table</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>result_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">Package =</span> required_pkgs, </span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">Status =</span> installed_status</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Print as markdown table</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(result_df, <span class="at">caption =</span> <span class="st">"Package Installation Status"</span>, <span class="at">booktabs =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Package Installation Status</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;">Package</th>
+<th style="text-align: left;">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">dplyr</td>
+<td style="text-align: left;">dplyr</td>
+<td style="text-align: left;">✓ Installed</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sf</td>
+<td style="text-align: left;">sf</td>
+<td style="text-align: left;">✓ Installed</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">lubridate</td>
+<td style="text-align: left;">lubridate</td>
+<td style="text-align: left;">✓ Installed</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">readr</td>
+<td style="text-align: left;">readr</td>
+<td style="text-align: left;">✓ Installed</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">janitor</td>
+<td style="text-align: left;">janitor</td>
+<td style="text-align: left;">✓ Installed</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hms</td>
+<td style="text-align: left;">hms</td>
+<td style="text-align: left;">✓ Installed</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</section>
+<section id="function-reference" class="level1">
+<h1>Function Reference</h1>
+<section id="core-functions-overview" class="level2">
+<h2 class="anchored" data-anchor-id="core-functions-overview">Core Functions Overview</h2>
+<p>The pipeline implements three main functional modules: data cleaning, spatial processing, and data distribution. Table <a href="#tbl-functions" class="quarto-xref">Table&nbsp;1</a> summarizes the core functions.</p>
+<div class="cell" data-layout-align="center">
+<div id="tbl-functions" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-layout-align="center">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-functions-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Core pipeline functions and their specifications
+</figcaption>
+<div aria-describedby="tbl-functions-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="cell caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 24%">
+<col style="width: 26%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Function</th>
+<th style="text-align: left;">Input</th>
+<th style="text-align: left;">Output</th>
+<th style="text-align: left;">Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">clean_patrol_summary()</td>
+<td style="text-align: left;">Shapefile path, landscape name</td>
+<td style="text-align: left;">Cleaned data frame with distance metrics</td>
+<td style="text-align: left;">Process patrol track shapefile and calculate distances</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">summary_patrol_data()</td>
+<td style="text-align: left;">Patrol summary data frame, output path</td>
+<td style="text-align: left;">CSV files organized by region/site/session</td>
+<td style="text-align: left;">Distribute patrol summaries to hierarchical folders</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">threats_patrol_data()</td>
+<td style="text-align: left;">Threats data frame, output path</td>
+<td style="text-align: left;">CSV files organized by region/site/session</td>
+<td style="text-align: left;">Distribute human activity threat records</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ff_patrol_data()</td>
+<td style="text-align: left;">Flora/fauna data frame, output path</td>
+<td style="text-align: left;">CSV files organized by region/site/session</td>
+<td style="text-align: left;">Distribute wildlife and flora observations</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+<section id="data-cleaning-function" class="level2">
+<h2 class="anchored" data-anchor-id="data-cleaning-function">Data Cleaning Function</h2>
+<p><em>clean_patrol_summary()</em> This function processes raw SMART patrol shapefiles, calculating spatial metrics and standardizing attributes.</p>
+<p>Function Signature:</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">clean_patrol_summary</span>(file_path, landscape)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Arguments:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 26%">
+<col style="width: 26%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"><strong>Argument</strong></th>
+<th style="text-align: left;"><strong>Type</strong></th>
+<th style="text-align: left;"><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><sup><code>file_path</code></sup></td>
+<td style="text-align: left;"><sup>Character</sup></td>
+<td style="text-align: left;"><sup>Full&nbsp;path&nbsp;to&nbsp;the&nbsp;<code>.shp</code>&nbsp;shapefile</sup></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><sup><code>landscape</code></sup></td>
+<td style="text-align: left;"><sup>Character</sup></td>
+<td style="text-align: left;"><sup>Landscape&nbsp;name&nbsp;(e.g.,&nbsp;“BKSDA&nbsp;Kalimantan&nbsp;Barat”)</sup></td>
+</tr>
+</tbody>
+</table>
+<p>Return Value: A data frame with cleaned patrol summary data containing:</p>
+<ul>
+<li>All original attributes (converted to lowercase)</li>
+<li><em>distance_m</em>: Patrol distance in meters (rounded to 2 decimals)</li>
+<li><em>distance_km</em>: Patrol distance in kilometers (rounded to 2 decimals)</li>
+</ul>
+<p>Processing Steps:</p>
+<ol type="1">
+<li>Validation: Checks file existence and readable format</li>
+<li>Spatial Reading: Imports shapefile using sf::st_read()</li>
+<li>Distance Calculation: Computes line lengths using st_length()</li>
+<li>Column Management: Drops unnecessary columns (Patrol_L_1, Patrol_L_2, Armed, Patrol_Leg)</li>
+<li>Format Conversion: Converts spatial object to standard data frame</li>
+<li>Standardization: Converts all column names to lowercase</li>
+</ol>
+<p>Computational Note: The function assumes the shapefile uses a projected coordinate system with units in meters. For geographic coordinate systems (WGS84), st_length() returns great-circle distances in meters (Karney, 2013).</p>
+</section>
+<section id="data-distribution-functions" class="level2">
+<h2 class="anchored" data-anchor-id="data-distribution-functions">Data Distribution Functions</h2>
+<section id="hierarchical-organization-principle" class="level3">
+<h3 class="anchored" data-anchor-id="hierarchical-organization-principle">Hierarchical Organization Principle</h3>
+<p>All distribution functions implement a consistent hierarchical folder structure based on administrative geography:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/smartdb_folder.png" class="img-fluid figure-img"></p>
+<figcaption>Hierarchical folder structure based on administrative geography for SMART database</figcaption>
+</figure>
+</div>
+<p><em>summary_patrol_data()</em> Distributes patrol summary data to hierarchical folders.</p>
+<p>Function Signature:</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary_patrol_data</span>(patrol.summary, nationaldb_smart, <span class="at">tabular_type =</span> <span class="st">"tabular"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>The files are stored in: D:/0_DataCentre/1_Database/SMART/Seksi Wilayah I/Kawasan A/2025/tabular/Ringkasan Patroli.csv </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>The files are stored in: D:/0_DataCentre/1_Database/SMART/Seksi Wilayah I/Kawasan A/2026/tabular/Ringkasan Patroli.csv </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>The files are stored in: D:/0_DataCentre/1_Database/SMART/Seksi Wilayah II/Kawasan B/2024/tabular/Ringkasan Patroli.csv </code></pre>
+</div>
+</div>
+<p><em>threats_patrol_data()</em> Distributes human activity threat records following the same hierarchical structure.</p>
+<p><em>ff_patrol_data()</em> Distributes wildlife and flora observation records.</p>
+</section>
+</section>
+</section>
+<section id="execution-workflow" class="level1">
+<h1>Execution Workflow</h1>
+<section id="pipeline-initialization" class="level2">
+<h2 class="anchored" data-anchor-id="pipeline-initialization">Pipeline Initialization</h2>
+<p>The complete pipeline is executed by running the main script 00_smart_data_generate.R. The workflow proceeds through eight sequential phases.</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Workflow diagram (placeholder)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Uncomment and add actual image:</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(<span class="st">"images/workflow_diagram.png"</span>, <span class="at">error =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/workflow_diagram.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="520"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="phase-1-environment-setup" class="level3">
+<h3 class="anchored" data-anchor-id="phase-1-environment-setup">Phase 1: Environment Setup</h3>
+<p>The pipeline begins by clearing the workspace and ensuring all required packages are available (Wickham, 2014). This phase implements reproducible environment management.</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear workspace</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>())</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Define required packages</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>packages_needed <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"dplyr"</span>, <span class="st">"tidyr"</span>, <span class="st">"janitor"</span>, <span class="st">"sp"</span>, <span class="st">"sf"</span>, <span class="st">"tidyverse"</span>, </span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"data.table"</span>, <span class="st">"utils"</span>, <span class="st">"lubridate"</span>, <span class="st">"readr"</span>, <span class="st">"mapview"</span>, </span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"ggplot2"</span>, <span class="st">"here"</span>, <span class="st">"fs"</span>, <span class="st">"readxl"</span>, <span class="st">"purrr"</span>, <span class="st">"hms"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Scientific rationale: Reproducible research requires explicit environment configuration (Sandve et al., 2013). Clearing the workspace eliminates potential conflicts from previous analyses, while automated package installation ensures computational reproducibility across different systems.</p>
+</section>
+<section id="phase-2-path-configuration" class="level3">
+<h3 class="anchored" data-anchor-id="phase-2-path-configuration">Phase 2: Path Configuration</h3>
+<p>File paths are configured using relative paths from a user-defined base directory. This approach enhances portability across different computing environments.</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>base_path        <span class="ot">&lt;-</span> <span class="st">"D:/0_Learning_DataR"</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>analysis         <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_path, <span class="st">"2_Analysis/01_Data_generate"</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>nationaldb       <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_path, <span class="st">"1_Database"</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>nationaldb_smart <span class="ot">&lt;-</span> <span class="fu">file.path</span>(nationaldb, <span class="st">"SMART"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="phase-3-data-import" class="level3">
+<h3 class="anchored" data-anchor-id="phase-3-data-import">Phase 3: Data Import</h3>
+<p>Raw SMART data are imported using <em>read_csv()</em> for tabular data and <em>st_read()</em> for spatial data.</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>all.observation <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(nationaldb, <span class="st">"SMART/All Observation/All_Observation.csv"</span>),</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">show_col_types =</span> <span class="cn">FALSE</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Data provenance: The CSV export from SMART contains all observation records (n ≈ 3,385), including patrol metadata, threat observations, and biodiversity records. The shapefile contains patrol track geometries representing movement routes during patrol operations (Critchlow et al., 2015).</p>
+</section>
+<section id="phase-4-data-cleaning" class="level3">
+<h3 class="anchored" data-anchor-id="phase-4-data-cleaning">Phase 4: Data Cleaning</h3>
+<p>The cleaning phase standardizes column names, date formats, and time representations.</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>all.observation <span class="ot">&lt;-</span> all.observation <span class="sc">%&gt;%</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">clean_names</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">kategori_temuan_0 =</span> observation_category_0,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">kategori_temuan_1 =</span> observation_category_1) <span class="sc">%&gt;%</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">landscape =</span> <span class="st">"BKSDA Kalimantan Barat"</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">patrol_start_date =</span> lubridate<span class="sc">::</span><span class="fu">mdy</span>(patrol_start_date),</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">patrol_end_date =</span> lubridate<span class="sc">::</span><span class="fu">mdy</span>(patrol_end_date), </span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">waypoint_date =</span> lubridate<span class="sc">::</span><span class="fu">mdy</span>(waypoint_date),</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">waypoint_time_final =</span> <span class="fu">as_hms</span>(<span class="fu">parse_date_time</span>(waypoint_time, <span class="at">orders =</span> <span class="fu">c</span>(<span class="st">"HM"</span>, <span class="st">"HMS"</span>)))</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Methodological note: Date parsing employs the month-day-year (MDY) order as this format is standard in SMART exports. The parse_date_time() function provides robust handling of heterogeneous time formats (Grolemund &amp; Wickham, 2011).</p>
+</section>
+<section id="phase-5-patrol-summary-processing" class="level3">
+<h3 class="anchored" data-anchor-id="phase-5-patrol-summary-processing">Phase 5: Patrol Summary Processing</h3>
+<p>Patrol tracks are aggregated to calculate total distances per patrol mission.</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>CPS <span class="ot">&lt;-</span> <span class="fu">clean_patrol_summary</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">file_path =</span> <span class="fu">file.path</span>(nationaldb, <span class="st">"SMART/All Observation/All_track.shp"</span>),</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">landscape =</span> <span class="st">"BKSDA Kalimantan Barat"</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>patrol.summary <span class="ot">&lt;-</span> CPS <span class="sc">%&gt;%</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">patrol_days =</span> <span class="fu">as.numeric</span>(patrol_end_date <span class="sc">-</span> patrol_start_date <span class="sc">+</span> <span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(patrol_id) <span class="sc">%&gt;%</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">reframe</span>(</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">distance_m =</span> <span class="fu">sum</span>(distance_m, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">distance_km =</span> <span class="fu">sum</span>(distance_km, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">patrol_days =</span> <span class="fu">first</span>(patrol_days),</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">everything</span>(), first)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Spatial analysis: Total patrol distance is calculated as the sum of individual track segment lengths. This metric serves as a proxy for patrol effort, which is positively associated with detection probability of threats and wildlife (Moore et al., 2018).</p>
+</section>
+<section id="phase-6-administrative-classification" class="level3">
+<h3 class="anchored" data-anchor-id="phase-6-administrative-classification">Phase 6: Administrative Classification</h3>
+<p>Patrol data are classified into hierarchical administrative units for reporting.</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>patrol.summary <span class="ot">&lt;-</span> patrol.summary <span class="sc">%&gt;%</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">site =</span> <span class="fu">case_when</span>(</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    station <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Resort 1 Kawasan A"</span>, <span class="st">"Resort 2 Kawasan A"</span>) <span class="sc">~</span> <span class="st">"Kawasan A"</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    station <span class="sc">==</span> <span class="st">"Resort 1 Kawasan B"</span> <span class="sc">~</span> <span class="st">"Kawasan B"</span> ,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># lanjutkan jika masih ada yang belum</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> station)) <span class="sc">%&gt;%</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">region =</span> <span class="fu">case_when</span>(</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    site <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Kawasan A"</span>)  <span class="sc">~</span> <span class="st">"Seksi Wilayah I"</span>,</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    site <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Kawasan B"</span>)  <span class="sc">~</span> <span class="st">"Seksi Wilayah II"</span>,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Tambahkan seksi lainnya </span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> site</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  )) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Administrative hierarchy: The management hierarchy pertains to the administration of a specific region in accordance with an institution’s organizational framework for regional management (e.g., the Regional Management Section). Administrative structures: Seksi Wilayah (section offices) and individual conservation sites (Cagar Alam, Taman Wisata Alam, Hutan Desa). This classification aligns with Indonesia’s conservation area management framework (Minister of Environment and Forestry Regulation No.&nbsp;P.76/Menlhk/Setjen/Kum.1/10/2015).</p>
+</section>
+<section id="phase-7-temporal-classification" class="level3">
+<h3 class="anchored" data-anchor-id="phase-7-temporal-classification">Phase 7: Temporal Classification</h3>
+<p>Temporal variables enable seasonal and trend analysis.</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>patrol.summary <span class="ot">&lt;-</span> patrol.summary <span class="sc">%&gt;%</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">session =</span> <span class="fu">year</span>(patrol_start_date),</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">month =</span> <span class="fu">month</span>(patrol_start_date),</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">semester =</span> <span class="fu">ifelse</span>(month <span class="sc">%in%</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>, <span class="dv">1</span>, <span class="dv">2</span>),</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">quarter =</span> <span class="fu">case_when</span>(</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>           month <span class="sc">%in%</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>  <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>           month <span class="sc">%in%</span> <span class="dv">4</span><span class="sc">:</span><span class="dv">6</span>  <span class="sc">~</span> <span class="dv">2</span>,</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>           month <span class="sc">%in%</span> <span class="dv">7</span><span class="sc">:</span><span class="dv">9</span>  <span class="sc">~</span> <span class="dv">3</span>,</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>           month <span class="sc">%in%</span> <span class="dv">10</span><span class="sc">:</span><span class="dv">12</span> <span class="sc">~</span> <span class="dv">4</span>,</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>           <span class="cn">TRUE</span> <span class="sc">~</span> <span class="cn">NA_integer_</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>         ))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Rationale: Temporal classification facilitates analysis of seasonal patterns in patrol effort, threat occurrence, and wildlife observations. Quarterly and semester aggregations align with standard conservation reporting cycles (Hockings et al., 2015).</p>
+</section>
+<section id="phase-8-data-distribution" class="level3">
+<h3 class="anchored" data-anchor-id="phase-8-data-distribution">Phase 8: Data Distribution</h3>
+<p>Processed data are exported to hierarchical folder structures.</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary_patrol_data</span>(patrol.summary, nationaldb_smart)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">threats_patrol_data</span>(patrol.threats, nationaldb_smart)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ff_patrol_data</span>(patrol.fauna.flora, nationaldb_smart)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+</section>
+</section>
+<section id="output-validation" class="level1">
+<h1>Output Validation</h1>
+<section id="expected-output-structure" class="level2">
+<h2 class="anchored" data-anchor-id="expected-output-structure">Expected Output Structure</h2>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/succes_folder_output.png" class="img-fluid figure-img" style="width:80.0%"></p>
+<figcaption>Successful execution generates the following directory structure</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="validation-code" class="level2">
+<h2 class="anchored" data-anchor-id="validation-code">Validation Code</h2>
+<p>Run the following to verify successful execution:</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Count exported CSV files</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>csv_files <span class="ot">&lt;-</span> <span class="fu">list.files</span>(nationaldb_smart, <span class="at">pattern =</span> <span class="st">"</span><span class="sc">\\</span><span class="st">.csv$"</span>, </span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Total CSV files exported:"</span>, <span class="fu">length</span>(csv_files), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total CSV files exported: 7 </code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check directory structure</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>dirs <span class="ot">&lt;-</span> <span class="fu">list.dirs</span>(nationaldb_smart, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">full.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Directories created:</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Directories created:</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dirs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] ""                                       
+ [2] "All Observation"                        
+ [3] "Seksi Wilayah I"                        
+ [4] "Seksi Wilayah I/Kawasan A"              
+ [5] "Seksi Wilayah I/Kawasan A/2025"         
+ [6] "Seksi Wilayah I/Kawasan A/2025/tabular" 
+ [7] "Seksi Wilayah I/Kawasan A/2026"         
+ [8] "Seksi Wilayah I/Kawasan A/2026/tabular" 
+ [9] "Seksi Wilayah I/Kawasan A/NA"           
+[10] "Seksi Wilayah I/Kawasan A/NA/tabular"   
+[11] "Seksi Wilayah II"                       
+[12] "Seksi Wilayah II/Kawasan B"             
+[13] "Seksi Wilayah II/Kawasan B/2024"        
+[14] "Seksi Wilayah II/Kawasan B/2024/tabular"
+[15] "Seksi Wilayah II/Kawasan B/NA"          
+[16] "Seksi Wilayah II/Kawasan B/NA/tabular"  </code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="troubleshooting" class="level1">
+<h1>Troubleshooting</h1>
+<section id="common-errors-and-solutions" class="level2">
+<h2 class="anchored" data-anchor-id="common-errors-and-solutions">Common Errors and Solutions</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"><sup><strong>Error</strong></sup></th>
+<th style="text-align: left;"><sup><strong>Cause</strong></sup></th>
+<th style="text-align: left;"><sup><strong>Solution</strong></sup></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">^<code>File not found</code>^</td>
+<td style="text-align: left;"><sup>Incorrect&nbsp;file&nbsp;path</sup></td>
+<td style="text-align: left;"><sup>Verify&nbsp;<code>base_path</code>&nbsp;variable&nbsp;matches&nbsp;your&nbsp;directory&nbsp;structure</sup></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">^<code>cannot open connection</code>^</td>
+<td style="text-align: left;"><sup>File&nbsp;permission&nbsp;issue</sup></td>
+<td style="text-align: left;"><sup>Close&nbsp;any&nbsp;open&nbsp;instances&nbsp;of&nbsp;the&nbsp;CSV&nbsp;file&nbsp;(e.g.,&nbsp;in&nbsp;Excel)</sup></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">^<code>object 'current_tabular' not found</code>^</td>
+<td style="text-align: left;"><sup>Outdated&nbsp;function&nbsp;file</sup></td>
+<td style="text-align: left;"><sup>Update&nbsp;function&nbsp;1_fn_smart_data.R`&nbsp;with&nbsp;the&nbsp;corrected&nbsp;version</sup></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><sup><code>st_read</code>&nbsp;error</sup></td>
+<td style="text-align: left;"><sup>Corrupted&nbsp;or&nbsp;incomplete&nbsp;shapefile</sup></td>
+<td style="text-align: left;"><sup>Ensure&nbsp;all&nbsp;shapefile&nbsp;components&nbsp;(.shp,&nbsp;.shx,&nbsp;.dbf,&nbsp;.prj)&nbsp;are&nbsp;present</sup></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><sup>Date&nbsp;parsing&nbsp;NAs</sup></td>
+<td style="text-align: left;"><sup>Unexpected&nbsp;date&nbsp;format</sup></td>
+<td style="text-align: left;"><sup>Check&nbsp;raw&nbsp;data&nbsp;for&nbsp;non-standard&nbsp;date&nbsp;strings</sup></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="debugging-mode" class="level2">
+<h2 class="anchored" data-anchor-id="debugging-mode">Debugging Mode</h2>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable verbose error messages</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">error =</span> recover)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Check data types after each major step</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(all.observation)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(patrol.summary)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Identify problematic date values</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>all.observation <span class="sc">%&gt;%</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">is.na</span>(patrol_start_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(patrol_start_date) <span class="sc">%&gt;%</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+</section>
+<section id="best-practices-and-recommendations" class="level1">
+<h1>Best Practices and Recommendations</h1>
+<section id="data-quality-assurance" class="level2">
+<h2 class="anchored" data-anchor-id="data-quality-assurance">Data Quality Assurance</h2>
+<ol type="1">
+<li>Regular Validation: Run validation scripts after each data import to detect formatting issues early</li>
+<li>Coordinate Reference System: Ensure shapefiles use a projected CRS (e.g., GCS WGS 84/decimal degree) for standardized data type (EPSG:4326 for standardized)</li>
+<li>Date Format Consistency: Maintain consistent MDY format in SMART configuration to minimize parsing errors</li>
+</ol>
+</section>
+<section id="performance-optimization" class="level2">
+<h2 class="anchored" data-anchor-id="performance-optimization">Performance Optimization</h2>
+<p>For large datasets (&gt;10,000 records), consider these optimizations:</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Use data.table for faster reading</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>all.observation <span class="ot">&lt;-</span> <span class="fu">fread</span>(file_path)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Parallel processing for multiple files</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(future)</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plan</span>(multisession, <span class="at">workers =</span> <span class="fu">availableCores</span>() <span class="sc">-</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+</section>
+<section id="version-history" class="level1">
+<h1>Version History</h1>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 26%">
+<col style="width: 26%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"><sup><strong>Version</strong></sup></th>
+<th style="text-align: left;"><sup><strong>Date</strong></sup></th>
+<th style="text-align: left;"><sup><strong>Changes</strong></sup></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><sup>2.0</sup></td>
+<td style="text-align: left;"><sup>2026-06-02</sup></td>
+<td style="text-align: left;"><sup>Complete&nbsp;rewrite&nbsp;with&nbsp;hierarchical&nbsp;distribution</sup></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><sup>1.0</sup></td>
+<td style="text-align: left;"><sup>2025-01-15</sup></td>
+<td style="text-align: left;"><sup>Initial&nbsp;release&nbsp;for&nbsp;Fauna&nbsp;&amp;&nbsp;Flora&nbsp;Indonesia&nbsp;Programme&nbsp;Kalimantan&nbsp;Barat</sup></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="contact-and-support" class="level1">
+<h1>Contact and Support</h1>
+<p>For technical support or questions regarding this pipeline, contact me:</p>
+<ul>
+<li>Email: <a href="mailto:jarian.work.1@gmail.com">jarian.work.1@gmail.com</a></li>
+<li>GitHub: <a href="https://github.com/HarimauSum4tra" class="uri">https://github.com/HarimauSum4tra</a></li>
+<li>See also My Portfolio: <a href="https://harimausum4tra.github.io/02_JPR_Portfolio_main/" class="uri">https://harimausum4tra.github.io/02_JPR_Portfolio_main/</a></li>
+</ul>
+</section>
+<section id="references" class="level1">
+
+<!-- -->
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-hockings2015" class="csl-entry" role="listitem">
+Hockings, M., F. Leverington, and C. Cook. 2015. <span>“Protected Area Management Effectiveness.”</span> <em>Parks</em> 21 (1): 7–18. <a href="https://doi.org/10.2305/IUCN.CH.2014.PARKS-21-1.MH.en">https://doi.org/10.2305/IUCN.CH.2014.PARKS-21-1.MH.en</a>.
+</div>
+<div id="ref-stokes2010" class="csl-entry" role="listitem">
+Stokes, E. J. 2010. <span>“Improving Effectiveness of Protection Efforts in Tiger Conservation Landscapes.”</span> <em>Integrative Zoology</em> 5 (4): 323–30. <a href="https://doi.org/10.1111/j.1749-4877.2010.00218.x">https://doi.org/10.1111/j.1749-4877.2010.00218.x</a>.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "SMART Patrol Data Processing Pipeline"</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "A Standardized Workflow for Conservation Area Monitoring Data"</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co">  - name: "Jarian Permana, Tutus Ageng, Ryan Avryandi"</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="co">    affiliation: "Fauna &amp; Flora Indonesia Programme"</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="co">    email: "jarian.work.1@gmail.com"</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "`r Sys.Date()`"</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-depth: 4</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-location: left</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="co">    theme: flatly</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="co">    code-fold: true</span></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="co">    df-print: paged</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a><span class="co">    highlight: tango</span></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a><span class="co">  pdf:</span></span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a><span class="co">    prefer-html: true</span></span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a><span class="co">    keep-tex: true</span></span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a><span class="co">    latex-engine: lualatex</span></span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a><span class="co">    number-sections: true</span></span>
+<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a><span class="an">geometry:</span><span class="co"> margin=1in</span></span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a><span class="an">bibliography:</span><span class="co"> references.bib</span></span>
+<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a><span class="an">lang:</span><span class="co"> en</span></span>
+<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a><span class="an">abstract:</span><span class="co"> |</span></span>
+<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a><span class="co">  This document presents a reproducible analytical pipeline for processing </span></span>
+<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a><span class="co">  SMART (Spatial Monitoring and Reporting Tool) patrol data from conservation </span></span>
+<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a><span class="co">  areas. The workflow automates data cleaning, spatial processing, and </span></span>
+<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a><span class="co">  hierarchical distribution of monitoring data. The pipeline processes three </span></span>
+<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a><span class="co">  primary data categories: patrol summaries, human activity threats, and </span></span>
+<span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a><span class="co">  wildlife observations. Outputs are systematically organized by administrative </span></span>
+<span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a><span class="co">  regions, conservation sites, and temporal sessions, facilitating downstream </span></span>
+<span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a><span class="co">  analysis and reporting.</span></span>
+<span id="cb25-37"><a href="#cb25-37" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb25-38"><a href="#cb25-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-39"><a href="#cb25-39" aria-hidden="true" tabindex="-1"></a><span class="in">```{r setup, include=FALSE}</span></span>
+<span id="cb25-40"><a href="#cb25-40" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(</span>
+<span id="cb25-41"><a href="#cb25-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">echo =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb25-42"><a href="#cb25-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb25-43"><a href="#cb25-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">fig.align =</span> <span class="st">"center"</span>,</span>
+<span id="cb25-44"><a href="#cb25-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">fig.height =</span> <span class="dv">6</span>,</span>
+<span id="cb25-45"><a href="#cb25-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">fig.width =</span> <span class="dv">10</span>,</span>
+<span id="cb25-46"><a href="#cb25-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">message =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb25-47"><a href="#cb25-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">warning =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb25-48"><a href="#cb25-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">cache =</span> <span class="cn">TRUE</span></span>
+<span id="cb25-49"><a href="#cb25-49" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-50"><a href="#cb25-50" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-51"><a href="#cb25-51" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-52"><a href="#cb25-52" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-53"><a href="#cb25-53" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-54"><a href="#cb25-54" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-55"><a href="#cb25-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-56"><a href="#cb25-56" aria-hidden="true" tabindex="-1"></a><span class="co"># Main path Configuration ------</span></span>
+<span id="cb25-57"><a href="#cb25-57" aria-hidden="true" tabindex="-1"></a>base_path        <span class="ot">&lt;-</span> <span class="st">"D:/0_DataCentre"</span></span>
+<span id="cb25-58"><a href="#cb25-58" aria-hidden="true" tabindex="-1"></a>analysis         <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_path, <span class="st">"2_Analysis/01_smart_generate"</span>)</span>
+<span id="cb25-59"><a href="#cb25-59" aria-hidden="true" tabindex="-1"></a>nationaldb       <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_path, <span class="st">"1_Database"</span>)</span>
+<span id="cb25-60"><a href="#cb25-60" aria-hidden="true" tabindex="-1"></a>nationaldb_smart <span class="ot">&lt;-</span> <span class="fu">file.path</span>(nationaldb, <span class="st">"SMART"</span>)</span>
+<span id="cb25-61"><a href="#cb25-61" aria-hidden="true" tabindex="-1"></a>output           <span class="ot">&lt;-</span> <span class="fu">file.path</span>(analysis, <span class="st">"output"</span>)</span>
+<span id="cb25-62"><a href="#cb25-62" aria-hidden="true" tabindex="-1"></a>data_folder      <span class="ot">&lt;-</span> <span class="fu">file.path</span>(analysis, <span class="st">"data"</span>)</span>
+<span id="cb25-63"><a href="#cb25-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-64"><a href="#cb25-64" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="fu">file.path</span>(data_folder, <span class="st">"smart_generate_data.RData"</span>))</span>
+<span id="cb25-65"><a href="#cb25-65" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">file.path</span>(analysis, <span class="st">"code/source"</span>, <span class="st">"1_fn_smart_data.r"</span>))</span>
+<span id="cb25-66"><a href="#cb25-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-67"><a href="#cb25-67" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-68"><a href="#cb25-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-69"><a href="#cb25-69" aria-hidden="true" tabindex="-1"></a><span class="fu"># Introduction</span></span>
+<span id="cb25-70"><a href="#cb25-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-71"><a href="#cb25-71" aria-hidden="true" tabindex="-1"></a><span class="fu">## Background</span></span>
+<span id="cb25-72"><a href="#cb25-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-73"><a href="#cb25-73" aria-hidden="true" tabindex="-1"></a>Systematic biodiversity monitoring is essential for assessing protected area management effectiveness and detecting emerging threats (@hockings2015). The Spatial Monitoring and Reporting Tool (SMART) has become a global standard for patrolling and data management in conservation areas (@stokes2010). SMART integrates spatial data collection with structured reporting, enabling rangers to document wildlife observations, human activities, and patrol efforts systematically across diverse conservation landscapes.</span>
+<span id="cb25-74"><a href="#cb25-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-75"><a href="#cb25-75" aria-hidden="true" tabindex="-1"></a><span class="fu">## Purpose of This Pipeline</span></span>
+<span id="cb25-76"><a href="#cb25-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-77"><a href="#cb25-77" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>Standardize Data Processing: Automate cleaning and transformation of raw SMART export files into analysis-ready formats</span>
+<span id="cb25-78"><a href="#cb25-78" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>Integrate Spatial Data: Process patrol track shapefile to calculate spatial metrics including patrol distances</span>
+<span id="cb25-79"><a href="#cb25-79" aria-hidden="true" tabindex="-1"></a><span class="ss">3.  </span>Hierarchical Organization: Distribute processed data into region → site → session directory structures based on existing data attributes</span>
+<span id="cb25-80"><a href="#cb25-80" aria-hidden="true" tabindex="-1"></a><span class="ss">4.  </span>Ensure Reproducibility: Provide fully documented code with automated dependency management</span>
+<span id="cb25-81"><a href="#cb25-81" aria-hidden="true" tabindex="-1"></a><span class="ss">5.  </span>Facilitate Reporting: Generate structured outputs compatible with conservation reporting frameworks</span>
+<span id="cb25-82"><a href="#cb25-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-83"><a href="#cb25-83" aria-hidden="true" tabindex="-1"></a><span class="fu">## Data Types Processed</span></span>
+<span id="cb25-84"><a href="#cb25-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-85"><a href="#cb25-85" aria-hidden="true" tabindex="-1"></a>The pipeline handles three primary data categories derived from SMART patrol operations:</span>
+<span id="cb25-86"><a href="#cb25-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-87"><a href="#cb25-87" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Data&nbsp;Category** | **Description** | **Key&nbsp;Variables** <span class="pp">|</span></span>
+<span id="cb25-88"><a href="#cb25-88" aria-hidden="true" tabindex="-1"></a><span class="pp">|:-----------------|:-------------------|:---------------------------------|</span></span>
+<span id="cb25-89"><a href="#cb25-89" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^**Patrol&nbsp;Summary**^ <span class="pp">|</span> ^Spatial&nbsp;tracks&nbsp;and&nbsp;patrol&nbsp;effort&nbsp;metrics^ <span class="pp">|</span> ^Distance,&nbsp;patrol&nbsp;duration,&nbsp;team&nbsp;composition,&nbsp;transport&nbsp;mode^ <span class="pp">|</span></span>
+<span id="cb25-90"><a href="#cb25-90" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^**Threat&nbsp;Records**^ <span class="pp">|</span> ^Human&nbsp;activity&nbsp;observations^ <span class="pp">|</span> ^Threat&nbsp;type,&nbsp;quantity,&nbsp;status,&nbsp;coordinates^ <span class="pp">|</span></span>
+<span id="cb25-91"><a href="#cb25-91" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^**Biodiversity&nbsp;Records**^ <span class="pp">|</span> ^Wildlife&nbsp;and&nbsp;flora&nbsp;observations^ <span class="pp">|</span> ^Species&nbsp;identification&nbsp;(local&nbsp;and&nbsp;scientific&nbsp;names),&nbsp;counts,&nbsp;condition^ <span class="pp">|</span></span>
+<span id="cb25-92"><a href="#cb25-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-93"><a href="#cb25-93" aria-hidden="true" tabindex="-1"></a><span class="fu"># System Requirements and Setup</span></span>
+<span id="cb25-94"><a href="#cb25-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-95"><a href="#cb25-95" aria-hidden="true" tabindex="-1"></a><span class="fu">## Software Requirements</span></span>
+<span id="cb25-96"><a href="#cb25-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-97"><a href="#cb25-97" aria-hidden="true" tabindex="-1"></a>The pipeline requires the following software environment:</span>
+<span id="cb25-98"><a href="#cb25-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-99"><a href="#cb25-99" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>R Version: 4.0 or higher (R Core Team, 2024)</span>
+<span id="cb25-100"><a href="#cb25-100" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>RStudio: Recommended for script execution and development</span>
+<span id="cb25-101"><a href="#cb25-101" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>RTools (Windows): Required for compiling spatial packages</span>
+<span id="cb25-102"><a href="#cb25-102" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Operating System: Windows 10/11, macOS, or Linux</span>
+<span id="cb25-103"><a href="#cb25-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-104"><a href="#cb25-104" aria-hidden="true" tabindex="-1"></a><span class="fu">## Directory Structure</span></span>
+<span id="cb25-105"><a href="#cb25-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-106"><a href="#cb25-106" aria-hidden="true" tabindex="-1"></a>The pipeline follows a standardized directory structure that separates raw data, analysis scripts, and outputs:</span>
+<span id="cb25-107"><a href="#cb25-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-110"><a href="#cb25-110" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb25-111"><a href="#cb25-111" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-directory</span></span>
+<span id="cb25-112"><a href="#cb25-112" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Complete directory structure of the SMART data processing pipeline showing data flow from input to output"</span></span>
+<span id="cb25-113"><a href="#cb25-113" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 6.5</span></span>
+<span id="cb25-114"><a href="#cb25-114" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 6</span></span>
+<span id="cb25-115"><a href="#cb25-115" aria-hidden="true" tabindex="-1"></a><span class="co">#| out-width: "80%"</span></span>
+<span id="cb25-116"><a href="#cb25-116" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb25-117"><a href="#cb25-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-118"><a href="#cb25-118" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(<span class="st">"images/path_foldering_2.png"</span>)</span>
+<span id="cb25-119"><a href="#cb25-119" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-120"><a href="#cb25-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-121"><a href="#cb25-121" aria-hidden="true" tabindex="-1"></a><span class="fu">## Directory Components</span></span>
+<span id="cb25-122"><a href="#cb25-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-125"><a href="#cb25-125" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb25-126"><a href="#cb25-126" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: component-table</span></span>
+<span id="cb25-127"><a href="#cb25-127" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Directory Components"</span></span>
+<span id="cb25-128"><a href="#cb25-128" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb25-129"><a href="#cb25-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-130"><a href="#cb25-130" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(kableExtra)</span>
+<span id="cb25-131"><a href="#cb25-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-132"><a href="#cb25-132" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb25-133"><a href="#cb25-133" aria-hidden="true" tabindex="-1"></a>  <span class="at">Component =</span> <span class="fu">c</span>(<span class="st">"**Input Database**"</span>, <span class="st">"**Analysis Scripts**"</span>, </span>
+<span id="cb25-134"><a href="#cb25-134" aria-hidden="true" tabindex="-1"></a>                <span class="st">"**Source Functions**"</span>, <span class="st">"**Output Data**"</span>, <span class="st">"**Documentation**"</span>),</span>
+<span id="cb25-135"><a href="#cb25-135" aria-hidden="true" tabindex="-1"></a>  <span class="at">Path =</span> <span class="fu">c</span>(<span class="st">"`1_Database/SMART/All Observation/`"</span>, </span>
+<span id="cb25-136"><a href="#cb25-136" aria-hidden="true" tabindex="-1"></a>           <span class="st">"`2_Analysis/01_Data_generate/`"</span>,</span>
+<span id="cb25-137"><a href="#cb25-137" aria-hidden="true" tabindex="-1"></a>           <span class="st">"`code/source/`"</span>, </span>
+<span id="cb25-138"><a href="#cb25-138" aria-hidden="true" tabindex="-1"></a>           <span class="st">"`data/` &amp; `output/`"</span>, </span>
+<span id="cb25-139"><a href="#cb25-139" aria-hidden="true" tabindex="-1"></a>           <span class="st">"`*.qmd`"</span>),</span>
+<span id="cb25-140"><a href="#cb25-140" aria-hidden="true" tabindex="-1"></a>  <span class="at">Purpose =</span> <span class="fu">c</span>(<span class="st">"Raw SMART CSV and shapefile exports"</span>,</span>
+<span id="cb25-141"><a href="#cb25-141" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Main execution and function scripts"</span>,</span>
+<span id="cb25-142"><a href="#cb25-142" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Core helper functions for data processing"</span>,</span>
+<span id="cb25-143"><a href="#cb25-143" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Processed results and intermediate files"</span>,</span>
+<span id="cb25-144"><a href="#cb25-144" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Reproducible workflow documentation"</span>)</span>
+<span id="cb25-145"><a href="#cb25-145" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-146"><a href="#cb25-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-147"><a href="#cb25-147" aria-hidden="true" tabindex="-1"></a><span class="co"># Untuk HTML</span></span>
+<span id="cb25-148"><a href="#cb25-148" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(df, <span class="at">format =</span> <span class="st">"html"</span>, <span class="at">escape =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb25-149"><a href="#cb25-149" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(<span class="at">font_size =</span> <span class="dv">9</span>, <span class="at">bootstrap_options =</span> <span class="st">"condensed"</span>)</span>
+<span id="cb25-150"><a href="#cb25-150" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-151"><a href="#cb25-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-152"><a href="#cb25-152" aria-hidden="true" tabindex="-1"></a><span class="fu">## Required R Packages</span></span>
+<span id="cb25-153"><a href="#cb25-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-154"><a href="#cb25-154" aria-hidden="true" tabindex="-1"></a>The pipeline depends on several R packages for data manipulation, spatial analysis, and date/time processing (Wickham et al., 2019; Pebesma, 2018; Grolemund &amp; Wickham, 2011).</span>
+<span id="cb25-155"><a href="#cb25-155" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-156"><a href="#cb25-156" aria-hidden="true" tabindex="-1"></a>Core Packages</span>
+<span id="cb25-157"><a href="#cb25-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-158"><a href="#cb25-158" aria-hidden="true" tabindex="-1"></a><span class="in">```{r corepackages}</span></span>
+<span id="cb25-159"><a href="#cb25-159" aria-hidden="true" tabindex="-1"></a>packages_table <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb25-160"><a href="#cb25-160" aria-hidden="true" tabindex="-1"></a>  <span class="at">Package =</span> <span class="fu">c</span>(<span class="st">"dplyr"</span>, <span class="st">"sf"</span>, <span class="st">"lubridate"</span>, <span class="st">"readr"</span>, <span class="st">"janitor"</span>, <span class="st">"hms"</span>, <span class="st">"tidyr"</span>, <span class="st">"purrr"</span>),</span>
+<span id="cb25-161"><a href="#cb25-161" aria-hidden="true" tabindex="-1"></a>  <span class="at">Version =</span> <span class="fu">sapply</span>(<span class="fu">c</span>(<span class="st">"dplyr"</span>, <span class="st">"sf"</span>, <span class="st">"lubridate"</span>, <span class="st">"readr"</span>, <span class="st">"janitor"</span>, <span class="st">"hms"</span>, <span class="st">"tidyr"</span>, <span class="st">"purrr"</span>), </span>
+<span id="cb25-162"><a href="#cb25-162" aria-hidden="true" tabindex="-1"></a>                   <span class="cf">function</span>(pkg) <span class="fu">as.character</span>(<span class="fu">packageVersion</span>(pkg))),</span>
+<span id="cb25-163"><a href="#cb25-163" aria-hidden="true" tabindex="-1"></a>  <span class="at">Purpose =</span> <span class="fu">c</span>(</span>
+<span id="cb25-164"><a href="#cb25-164" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Data manipulation and transformation"</span>,</span>
+<span id="cb25-165"><a href="#cb25-165" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Spatial data handling and shapefile processing"</span>,</span>
+<span id="cb25-166"><a href="#cb25-166" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Date and time parsing and arithmetic"</span>,</span>
+<span id="cb25-167"><a href="#cb25-167" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Efficient CSV reading and writing"</span>,</span>
+<span id="cb25-168"><a href="#cb25-168" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Column name cleaning and data validation"</span>,</span>
+<span id="cb25-169"><a href="#cb25-169" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Time format handling (HH:MM:SS)"</span>,</span>
+<span id="cb25-170"><a href="#cb25-170" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Data reshaping and tidying"</span>,</span>
+<span id="cb25-171"><a href="#cb25-171" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Functional programming and iteration"</span></span>
+<span id="cb25-172"><a href="#cb25-172" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb25-173"><a href="#cb25-173" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-174"><a href="#cb25-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-175"><a href="#cb25-175" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(packages_table, <span class="at">caption =</span> <span class="st">"Core R packages used in the pipeline"</span>, </span>
+<span id="cb25-176"><a href="#cb25-176" aria-hidden="true" tabindex="-1"></a>      <span class="at">booktabs =</span> <span class="cn">TRUE</span>, <span class="at">format =</span> <span class="st">"markdown"</span>)</span>
+<span id="cb25-177"><a href="#cb25-177" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-178"><a href="#cb25-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-179"><a href="#cb25-179" aria-hidden="true" tabindex="-1"></a><span class="fu">## Installation Verification</span></span>
+<span id="cb25-180"><a href="#cb25-180" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-181"><a href="#cb25-181" aria-hidden="true" tabindex="-1"></a>Run the following code to verify all required packages are properly installed:</span>
+<span id="cb25-182"><a href="#cb25-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-183"><a href="#cb25-183" aria-hidden="true" tabindex="-1"></a><span class="in">```{r librun}</span></span>
+<span id="cb25-184"><a href="#cb25-184" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-185"><a href="#cb25-185" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-186"><a href="#cb25-186" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-187"><a href="#cb25-187" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-188"><a href="#cb25-188" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(janitor, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-189"><a href="#cb25-189" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(hms, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-190"><a href="#cb25-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-191"><a href="#cb25-191" aria-hidden="true" tabindex="-1"></a><span class="co"># List required packages</span></span>
+<span id="cb25-192"><a href="#cb25-192" aria-hidden="true" tabindex="-1"></a>required_pkgs <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"dplyr"</span>, <span class="st">"sf"</span>, <span class="st">"lubridate"</span>, <span class="st">"readr"</span>, <span class="st">"janitor"</span>, <span class="st">"hms"</span>)</span>
+<span id="cb25-193"><a href="#cb25-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-194"><a href="#cb25-194" aria-hidden="true" tabindex="-1"></a><span class="co"># Check installation status</span></span>
+<span id="cb25-195"><a href="#cb25-195" aria-hidden="true" tabindex="-1"></a>installed_status <span class="ot">&lt;-</span> <span class="fu">sapply</span>(required_pkgs, <span class="cf">function</span>(pkg) {</span>
+<span id="cb25-196"><a href="#cb25-196" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">require</span>(pkg, <span class="at">character.only =</span> <span class="cn">TRUE</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)) {</span>
+<span id="cb25-197"><a href="#cb25-197" aria-hidden="true" tabindex="-1"></a>    <span class="st">"✓ Installed"</span></span>
+<span id="cb25-198"><a href="#cb25-198" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb25-199"><a href="#cb25-199" aria-hidden="true" tabindex="-1"></a>    <span class="st">"✗ Missing"</span></span>
+<span id="cb25-200"><a href="#cb25-200" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb25-201"><a href="#cb25-201" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb25-202"><a href="#cb25-202" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-203"><a href="#cb25-203" aria-hidden="true" tabindex="-1"></a><span class="co"># Create output table</span></span>
+<span id="cb25-204"><a href="#cb25-204" aria-hidden="true" tabindex="-1"></a>result_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb25-205"><a href="#cb25-205" aria-hidden="true" tabindex="-1"></a>  <span class="at">Package =</span> required_pkgs, </span>
+<span id="cb25-206"><a href="#cb25-206" aria-hidden="true" tabindex="-1"></a>  <span class="at">Status =</span> installed_status</span>
+<span id="cb25-207"><a href="#cb25-207" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-208"><a href="#cb25-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-209"><a href="#cb25-209" aria-hidden="true" tabindex="-1"></a><span class="co"># Print as markdown table</span></span>
+<span id="cb25-210"><a href="#cb25-210" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(result_df, <span class="at">caption =</span> <span class="st">"Package Installation Status"</span>, <span class="at">booktabs =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb25-211"><a href="#cb25-211" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-212"><a href="#cb25-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-213"><a href="#cb25-213" aria-hidden="true" tabindex="-1"></a><span class="fu"># Function Reference</span></span>
+<span id="cb25-214"><a href="#cb25-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-215"><a href="#cb25-215" aria-hidden="true" tabindex="-1"></a><span class="fu">## Core Functions Overview</span></span>
+<span id="cb25-216"><a href="#cb25-216" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-217"><a href="#cb25-217" aria-hidden="true" tabindex="-1"></a>The pipeline implements three main functional modules: data cleaning, spatial processing, and data distribution. Table @tbl-functions summarizes the core functions.</span>
+<span id="cb25-218"><a href="#cb25-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-221"><a href="#cb25-221" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb25-222"><a href="#cb25-222" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-functions</span></span>
+<span id="cb25-223"><a href="#cb25-223" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Core pipeline functions and their specifications"</span></span>
+<span id="cb25-224"><a href="#cb25-224" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb25-225"><a href="#cb25-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-226"><a href="#cb25-226" aria-hidden="true" tabindex="-1"></a>functions_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb25-227"><a href="#cb25-227" aria-hidden="true" tabindex="-1"></a>  <span class="at">Function =</span> <span class="fu">c</span>(<span class="st">"clean_patrol_summary()"</span>, <span class="st">"summary_patrol_data()"</span>, </span>
+<span id="cb25-228"><a href="#cb25-228" aria-hidden="true" tabindex="-1"></a>               <span class="st">"threats_patrol_data()"</span>, <span class="st">"ff_patrol_data()"</span>),</span>
+<span id="cb25-229"><a href="#cb25-229" aria-hidden="true" tabindex="-1"></a>  <span class="at">Input =</span> <span class="fu">c</span>(<span class="st">"Shapefile path, landscape name"</span>, <span class="st">"Patrol summary data frame, output path"</span>,</span>
+<span id="cb25-230"><a href="#cb25-230" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Threats data frame, output path"</span>, <span class="st">"Flora/fauna data frame, output path"</span>),</span>
+<span id="cb25-231"><a href="#cb25-231" aria-hidden="true" tabindex="-1"></a>  <span class="at">Output =</span> <span class="fu">c</span>(<span class="st">"Cleaned data frame with distance metrics"</span>, </span>
+<span id="cb25-232"><a href="#cb25-232" aria-hidden="true" tabindex="-1"></a>             <span class="st">"CSV files organized by region/site/session"</span>,</span>
+<span id="cb25-233"><a href="#cb25-233" aria-hidden="true" tabindex="-1"></a>             <span class="st">"CSV files organized by region/site/session"</span>, </span>
+<span id="cb25-234"><a href="#cb25-234" aria-hidden="true" tabindex="-1"></a>             <span class="st">"CSV files organized by region/site/session"</span>),</span>
+<span id="cb25-235"><a href="#cb25-235" aria-hidden="true" tabindex="-1"></a>  <span class="at">Purpose =</span> <span class="fu">c</span>(<span class="st">"Process patrol track shapefile and calculate distances"</span>,</span>
+<span id="cb25-236"><a href="#cb25-236" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Distribute patrol summaries to hierarchical folders"</span>,</span>
+<span id="cb25-237"><a href="#cb25-237" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Distribute human activity threat records"</span>, </span>
+<span id="cb25-238"><a href="#cb25-238" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Distribute wildlife and flora observations"</span>)</span>
+<span id="cb25-239"><a href="#cb25-239" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-240"><a href="#cb25-240" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-241"><a href="#cb25-241" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(functions_df, <span class="at">booktabs =</span> <span class="cn">TRUE</span>, <span class="at">format =</span> <span class="st">"markdown"</span>)</span>
+<span id="cb25-242"><a href="#cb25-242" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-243"><a href="#cb25-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-244"><a href="#cb25-244" aria-hidden="true" tabindex="-1"></a><span class="fu">## Data Cleaning Function</span></span>
+<span id="cb25-245"><a href="#cb25-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-246"><a href="#cb25-246" aria-hidden="true" tabindex="-1"></a>*clean_patrol_summary()* This function processes raw SMART patrol shapefiles, calculating spatial metrics and standardizing attributes.</span>
+<span id="cb25-247"><a href="#cb25-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-248"><a href="#cb25-248" aria-hidden="true" tabindex="-1"></a>Function Signature:</span>
+<span id="cb25-249"><a href="#cb25-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-250"><a href="#cb25-250" aria-hidden="true" tabindex="-1"></a><span class="in">```{r excleanpsum, eval=FALSE, include=TRUE}</span></span>
+<span id="cb25-251"><a href="#cb25-251" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb25-252"><a href="#cb25-252" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb25-253"><a href="#cb25-253" aria-hidden="true" tabindex="-1"></a><span class="fu">clean_patrol_summary</span>(file_path, landscape)</span>
+<span id="cb25-254"><a href="#cb25-254" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-255"><a href="#cb25-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-256"><a href="#cb25-256" aria-hidden="true" tabindex="-1"></a>Arguments:</span>
+<span id="cb25-257"><a href="#cb25-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-258"><a href="#cb25-258" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Argument** | **Type** | **Description** <span class="pp">|</span></span>
+<span id="cb25-259"><a href="#cb25-259" aria-hidden="true" tabindex="-1"></a><span class="pp">|:------------------|:------------------|:---------------------------------|</span></span>
+<span id="cb25-260"><a href="#cb25-260" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^<span class="in">`file_path`</span>^ <span class="pp">|</span> ^Character^ <span class="pp">|</span> ^Full&nbsp;path&nbsp;to&nbsp;the&nbsp;<span class="in">`.shp`</span>&nbsp;shapefile^ <span class="pp">|</span></span>
+<span id="cb25-261"><a href="#cb25-261" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^<span class="in">`landscape`</span>^ <span class="pp">|</span> ^Character^ <span class="pp">|</span> ^Landscape&nbsp;name&nbsp;(e.g.,&nbsp;"BKSDA&nbsp;Kalimantan&nbsp;Barat")^ <span class="pp">|</span></span>
+<span id="cb25-262"><a href="#cb25-262" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-263"><a href="#cb25-263" aria-hidden="true" tabindex="-1"></a>Return Value: A data frame with cleaned patrol summary data containing:</span>
+<span id="cb25-264"><a href="#cb25-264" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-265"><a href="#cb25-265" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>All original attributes (converted to lowercase)</span>
+<span id="cb25-266"><a href="#cb25-266" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>*distance_m*: Patrol distance in meters (rounded to 2 decimals)</span>
+<span id="cb25-267"><a href="#cb25-267" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>*distance_km*: Patrol distance in kilometers (rounded to 2 decimals)</span>
+<span id="cb25-268"><a href="#cb25-268" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-269"><a href="#cb25-269" aria-hidden="true" tabindex="-1"></a>Processing Steps:</span>
+<span id="cb25-270"><a href="#cb25-270" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-271"><a href="#cb25-271" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>Validation: Checks file existence and readable format</span>
+<span id="cb25-272"><a href="#cb25-272" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>Spatial Reading: Imports shapefile using sf::st_read()</span>
+<span id="cb25-273"><a href="#cb25-273" aria-hidden="true" tabindex="-1"></a><span class="ss">3.  </span>Distance Calculation: Computes line lengths using st_length()</span>
+<span id="cb25-274"><a href="#cb25-274" aria-hidden="true" tabindex="-1"></a><span class="ss">4.  </span>Column Management: Drops unnecessary columns (Patrol_L_1, Patrol_L_2, Armed, Patrol_Leg)</span>
+<span id="cb25-275"><a href="#cb25-275" aria-hidden="true" tabindex="-1"></a><span class="ss">5.  </span>Format Conversion: Converts spatial object to standard data frame</span>
+<span id="cb25-276"><a href="#cb25-276" aria-hidden="true" tabindex="-1"></a><span class="ss">6.  </span>Standardization: Converts all column names to lowercase</span>
+<span id="cb25-277"><a href="#cb25-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-278"><a href="#cb25-278" aria-hidden="true" tabindex="-1"></a>Computational Note: The function assumes the shapefile uses a projected coordinate system with units in meters. For geographic coordinate systems (WGS84), st_length() returns great-circle distances in meters (Karney, 2013).</span>
+<span id="cb25-279"><a href="#cb25-279" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-280"><a href="#cb25-280" aria-hidden="true" tabindex="-1"></a><span class="fu">## Data Distribution Functions</span></span>
+<span id="cb25-281"><a href="#cb25-281" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-282"><a href="#cb25-282" aria-hidden="true" tabindex="-1"></a><span class="fu">### Hierarchical Organization Principle</span></span>
+<span id="cb25-283"><a href="#cb25-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-284"><a href="#cb25-284" aria-hidden="true" tabindex="-1"></a>All distribution functions implement a consistent hierarchical folder structure based on administrative geography:</span>
+<span id="cb25-285"><a href="#cb25-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-286"><a href="#cb25-286" aria-hidden="true" tabindex="-1"></a><span class="al">![Hierarchical folder structure based on administrative geography for SMART database](images/smartdb_folder.png)</span></span>
+<span id="cb25-287"><a href="#cb25-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-288"><a href="#cb25-288" aria-hidden="true" tabindex="-1"></a>*summary_patrol_data()* Distributes patrol summary data to hierarchical folders.</span>
+<span id="cb25-289"><a href="#cb25-289" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-290"><a href="#cb25-290" aria-hidden="true" tabindex="-1"></a>Function Signature:</span>
+<span id="cb25-291"><a href="#cb25-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-292"><a href="#cb25-292" aria-hidden="true" tabindex="-1"></a><span class="in">```{r exsummarypatrol}</span></span>
+<span id="cb25-293"><a href="#cb25-293" aria-hidden="true" tabindex="-1"></a><span class="fu">summary_patrol_data</span>(patrol.summary, nationaldb_smart, <span class="at">tabular_type =</span> <span class="st">"tabular"</span>)</span>
+<span id="cb25-294"><a href="#cb25-294" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-295"><a href="#cb25-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-296"><a href="#cb25-296" aria-hidden="true" tabindex="-1"></a>*threats_patrol_data()* Distributes human activity threat records following the same hierarchical structure.</span>
+<span id="cb25-297"><a href="#cb25-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-298"><a href="#cb25-298" aria-hidden="true" tabindex="-1"></a>*ff_patrol_data()* Distributes wildlife and flora observation records.</span>
+<span id="cb25-299"><a href="#cb25-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-300"><a href="#cb25-300" aria-hidden="true" tabindex="-1"></a><span class="fu"># Execution Workflow</span></span>
+<span id="cb25-301"><a href="#cb25-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-302"><a href="#cb25-302" aria-hidden="true" tabindex="-1"></a><span class="fu">## Pipeline Initialization</span></span>
+<span id="cb25-303"><a href="#cb25-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-304"><a href="#cb25-304" aria-hidden="true" tabindex="-1"></a>The complete pipeline is executed by running the main script 00_smart_data_generate.R. The workflow proceeds through eight sequential phases.</span>
+<span id="cb25-305"><a href="#cb25-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-308"><a href="#cb25-308" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb25-309"><a href="#cb25-309" aria-hidden="true" tabindex="-1"></a><span class="co"># Workflow diagram (placeholder)</span></span>
+<span id="cb25-310"><a href="#cb25-310" aria-hidden="true" tabindex="-1"></a><span class="co"># Uncomment and add actual image:</span></span>
+<span id="cb25-311"><a href="#cb25-311" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(<span class="st">"images/workflow_diagram.png"</span>, <span class="at">error =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-312"><a href="#cb25-312" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-313"><a href="#cb25-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-314"><a href="#cb25-314" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 1: Environment Setup</span></span>
+<span id="cb25-315"><a href="#cb25-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-316"><a href="#cb25-316" aria-hidden="true" tabindex="-1"></a>The pipeline begins by clearing the workspace and ensuring all required packages are available (Wickham, 2014). This phase implements reproducible environment management.</span>
+<span id="cb25-317"><a href="#cb25-317" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-318"><a href="#cb25-318" aria-hidden="true" tabindex="-1"></a><span class="in">```{r phase1}</span></span>
+<span id="cb25-319"><a href="#cb25-319" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb25-320"><a href="#cb25-320" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: true</span></span>
+<span id="cb25-321"><a href="#cb25-321" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear workspace</span></span>
+<span id="cb25-322"><a href="#cb25-322" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>())</span>
+<span id="cb25-323"><a href="#cb25-323" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-324"><a href="#cb25-324" aria-hidden="true" tabindex="-1"></a><span class="co"># Define required packages</span></span>
+<span id="cb25-325"><a href="#cb25-325" aria-hidden="true" tabindex="-1"></a>packages_needed <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"dplyr"</span>, <span class="st">"tidyr"</span>, <span class="st">"janitor"</span>, <span class="st">"sp"</span>, <span class="st">"sf"</span>, <span class="st">"tidyverse"</span>, </span>
+<span id="cb25-326"><a href="#cb25-326" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"data.table"</span>, <span class="st">"utils"</span>, <span class="st">"lubridate"</span>, <span class="st">"readr"</span>, <span class="st">"mapview"</span>, </span>
+<span id="cb25-327"><a href="#cb25-327" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"ggplot2"</span>, <span class="st">"here"</span>, <span class="st">"fs"</span>, <span class="st">"readxl"</span>, <span class="st">"purrr"</span>, <span class="st">"hms"</span>)</span>
+<span id="cb25-328"><a href="#cb25-328" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-329"><a href="#cb25-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-330"><a href="#cb25-330" aria-hidden="true" tabindex="-1"></a>Scientific rationale: Reproducible research requires explicit environment configuration (Sandve et al., 2013). Clearing the workspace eliminates potential conflicts from previous analyses, while automated package installation ensures computational reproducibility across different systems.</span>
+<span id="cb25-331"><a href="#cb25-331" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-332"><a href="#cb25-332" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 2: Path Configuration</span></span>
+<span id="cb25-333"><a href="#cb25-333" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-334"><a href="#cb25-334" aria-hidden="true" tabindex="-1"></a>File paths are configured using relative paths from a user-defined base directory. This approach enhances portability across different computing environments.</span>
+<span id="cb25-335"><a href="#cb25-335" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-336"><a href="#cb25-336" aria-hidden="true" tabindex="-1"></a><span class="in">```{r phase2}</span></span>
+<span id="cb25-337"><a href="#cb25-337" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb25-338"><a href="#cb25-338" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: true</span></span>
+<span id="cb25-339"><a href="#cb25-339" aria-hidden="true" tabindex="-1"></a><span class="co">#| paged-print: false</span></span>
+<span id="cb25-340"><a href="#cb25-340" aria-hidden="true" tabindex="-1"></a>base_path        <span class="ot">&lt;-</span> <span class="st">"D:/0_Learning_DataR"</span></span>
+<span id="cb25-341"><a href="#cb25-341" aria-hidden="true" tabindex="-1"></a>analysis         <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_path, <span class="st">"2_Analysis/01_Data_generate"</span>)</span>
+<span id="cb25-342"><a href="#cb25-342" aria-hidden="true" tabindex="-1"></a>nationaldb       <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_path, <span class="st">"1_Database"</span>)</span>
+<span id="cb25-343"><a href="#cb25-343" aria-hidden="true" tabindex="-1"></a>nationaldb_smart <span class="ot">&lt;-</span> <span class="fu">file.path</span>(nationaldb, <span class="st">"SMART"</span>)</span>
+<span id="cb25-344"><a href="#cb25-344" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-345"><a href="#cb25-345" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-346"><a href="#cb25-346" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 3: Data Import</span></span>
+<span id="cb25-347"><a href="#cb25-347" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-348"><a href="#cb25-348" aria-hidden="true" tabindex="-1"></a>Raw SMART data are imported using *read_csv()* for tabular data and *st_read()* for spatial data.</span>
+<span id="cb25-349"><a href="#cb25-349" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-350"><a href="#cb25-350" aria-hidden="true" tabindex="-1"></a><span class="in">```{r phase3}</span></span>
+<span id="cb25-351"><a href="#cb25-351" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb25-352"><a href="#cb25-352" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: true</span></span>
+<span id="cb25-353"><a href="#cb25-353" aria-hidden="true" tabindex="-1"></a>all.observation <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(</span>
+<span id="cb25-354"><a href="#cb25-354" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(nationaldb, <span class="st">"SMART/All Observation/All_Observation.csv"</span>),</span>
+<span id="cb25-355"><a href="#cb25-355" aria-hidden="true" tabindex="-1"></a>  <span class="at">show_col_types =</span> <span class="cn">FALSE</span></span>
+<span id="cb25-356"><a href="#cb25-356" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-357"><a href="#cb25-357" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-358"><a href="#cb25-358" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-359"><a href="#cb25-359" aria-hidden="true" tabindex="-1"></a>Data provenance: The CSV export from SMART contains all observation records (n ≈ 3,385), including patrol metadata, threat observations, and biodiversity records. The shapefile contains patrol track geometries representing movement routes during patrol operations (Critchlow et al., 2015).</span>
+<span id="cb25-360"><a href="#cb25-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-361"><a href="#cb25-361" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 4: Data Cleaning</span></span>
+<span id="cb25-362"><a href="#cb25-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-363"><a href="#cb25-363" aria-hidden="true" tabindex="-1"></a>The cleaning phase standardizes column names, date formats, and time representations.</span>
+<span id="cb25-364"><a href="#cb25-364" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-365"><a href="#cb25-365" aria-hidden="true" tabindex="-1"></a><span class="in">```{r phase4}</span></span>
+<span id="cb25-366"><a href="#cb25-366" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb25-367"><a href="#cb25-367" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: true</span></span>
+<span id="cb25-368"><a href="#cb25-368" aria-hidden="true" tabindex="-1"></a>all.observation <span class="ot">&lt;-</span> all.observation <span class="sc">%&gt;%</span></span>
+<span id="cb25-369"><a href="#cb25-369" aria-hidden="true" tabindex="-1"></a>  <span class="fu">clean_names</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb25-370"><a href="#cb25-370" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">kategori_temuan_0 =</span> observation_category_0,</span>
+<span id="cb25-371"><a href="#cb25-371" aria-hidden="true" tabindex="-1"></a>         <span class="at">kategori_temuan_1 =</span> observation_category_1) <span class="sc">%&gt;%</span></span>
+<span id="cb25-372"><a href="#cb25-372" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb25-373"><a href="#cb25-373" aria-hidden="true" tabindex="-1"></a>    <span class="at">landscape =</span> <span class="st">"BKSDA Kalimantan Barat"</span>,</span>
+<span id="cb25-374"><a href="#cb25-374" aria-hidden="true" tabindex="-1"></a>    <span class="at">patrol_start_date =</span> lubridate<span class="sc">::</span><span class="fu">mdy</span>(patrol_start_date),</span>
+<span id="cb25-375"><a href="#cb25-375" aria-hidden="true" tabindex="-1"></a>    <span class="at">patrol_end_date =</span> lubridate<span class="sc">::</span><span class="fu">mdy</span>(patrol_end_date), </span>
+<span id="cb25-376"><a href="#cb25-376" aria-hidden="true" tabindex="-1"></a>    <span class="at">waypoint_date =</span> lubridate<span class="sc">::</span><span class="fu">mdy</span>(waypoint_date),</span>
+<span id="cb25-377"><a href="#cb25-377" aria-hidden="true" tabindex="-1"></a>    <span class="at">waypoint_time_final =</span> <span class="fu">as_hms</span>(<span class="fu">parse_date_time</span>(waypoint_time, <span class="at">orders =</span> <span class="fu">c</span>(<span class="st">"HM"</span>, <span class="st">"HMS"</span>)))</span>
+<span id="cb25-378"><a href="#cb25-378" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb25-379"><a href="#cb25-379" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-380"><a href="#cb25-380" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-381"><a href="#cb25-381" aria-hidden="true" tabindex="-1"></a>Methodological note: Date parsing employs the month-day-year (MDY) order as this format is standard in SMART exports. The parse_date_time() function provides robust handling of heterogeneous time formats (Grolemund &amp; Wickham, 2011).</span>
+<span id="cb25-382"><a href="#cb25-382" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-383"><a href="#cb25-383" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 5: Patrol Summary Processing</span></span>
+<span id="cb25-384"><a href="#cb25-384" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-385"><a href="#cb25-385" aria-hidden="true" tabindex="-1"></a>Patrol tracks are aggregated to calculate total distances per patrol mission.</span>
+<span id="cb25-386"><a href="#cb25-386" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-387"><a href="#cb25-387" aria-hidden="true" tabindex="-1"></a><span class="in">```{r phase5}</span></span>
+<span id="cb25-388"><a href="#cb25-388" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb25-389"><a href="#cb25-389" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: true</span></span>
+<span id="cb25-390"><a href="#cb25-390" aria-hidden="true" tabindex="-1"></a>CPS <span class="ot">&lt;-</span> <span class="fu">clean_patrol_summary</span>(</span>
+<span id="cb25-391"><a href="#cb25-391" aria-hidden="true" tabindex="-1"></a>  <span class="at">file_path =</span> <span class="fu">file.path</span>(nationaldb, <span class="st">"SMART/All Observation/All_track.shp"</span>),</span>
+<span id="cb25-392"><a href="#cb25-392" aria-hidden="true" tabindex="-1"></a>  <span class="at">landscape =</span> <span class="st">"BKSDA Kalimantan Barat"</span></span>
+<span id="cb25-393"><a href="#cb25-393" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-394"><a href="#cb25-394" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-395"><a href="#cb25-395" aria-hidden="true" tabindex="-1"></a>patrol.summary <span class="ot">&lt;-</span> CPS <span class="sc">%&gt;%</span></span>
+<span id="cb25-396"><a href="#cb25-396" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">patrol_days =</span> <span class="fu">as.numeric</span>(patrol_end_date <span class="sc">-</span> patrol_start_date <span class="sc">+</span> <span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb25-397"><a href="#cb25-397" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(patrol_id) <span class="sc">%&gt;%</span></span>
+<span id="cb25-398"><a href="#cb25-398" aria-hidden="true" tabindex="-1"></a>  <span class="fu">reframe</span>(</span>
+<span id="cb25-399"><a href="#cb25-399" aria-hidden="true" tabindex="-1"></a>    <span class="at">distance_m =</span> <span class="fu">sum</span>(distance_m, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb25-400"><a href="#cb25-400" aria-hidden="true" tabindex="-1"></a>    <span class="at">distance_km =</span> <span class="fu">sum</span>(distance_km, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb25-401"><a href="#cb25-401" aria-hidden="true" tabindex="-1"></a>    <span class="at">patrol_days =</span> <span class="fu">first</span>(patrol_days),</span>
+<span id="cb25-402"><a href="#cb25-402" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">everything</span>(), first)</span>
+<span id="cb25-403"><a href="#cb25-403" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb25-404"><a href="#cb25-404" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-405"><a href="#cb25-405" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-406"><a href="#cb25-406" aria-hidden="true" tabindex="-1"></a>Spatial analysis: Total patrol distance is calculated as the sum of individual track segment lengths. This metric serves as a proxy for patrol effort, which is positively associated with detection probability of threats and wildlife (Moore et al., 2018).</span>
+<span id="cb25-407"><a href="#cb25-407" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-408"><a href="#cb25-408" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 6: Administrative Classification</span></span>
+<span id="cb25-409"><a href="#cb25-409" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-410"><a href="#cb25-410" aria-hidden="true" tabindex="-1"></a>Patrol data are classified into hierarchical administrative units for reporting.</span>
+<span id="cb25-411"><a href="#cb25-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-412"><a href="#cb25-412" aria-hidden="true" tabindex="-1"></a><span class="in">```{r phase6}</span></span>
+<span id="cb25-413"><a href="#cb25-413" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb25-414"><a href="#cb25-414" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: true</span></span>
+<span id="cb25-415"><a href="#cb25-415" aria-hidden="true" tabindex="-1"></a>patrol.summary <span class="ot">&lt;-</span> patrol.summary <span class="sc">%&gt;%</span></span>
+<span id="cb25-416"><a href="#cb25-416" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">site =</span> <span class="fu">case_when</span>(</span>
+<span id="cb25-417"><a href="#cb25-417" aria-hidden="true" tabindex="-1"></a>    station <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Resort 1 Kawasan A"</span>, <span class="st">"Resort 2 Kawasan A"</span>) <span class="sc">~</span> <span class="st">"Kawasan A"</span>,</span>
+<span id="cb25-418"><a href="#cb25-418" aria-hidden="true" tabindex="-1"></a>    station <span class="sc">==</span> <span class="st">"Resort 1 Kawasan B"</span> <span class="sc">~</span> <span class="st">"Kawasan B"</span> ,</span>
+<span id="cb25-419"><a href="#cb25-419" aria-hidden="true" tabindex="-1"></a>    <span class="co"># lanjutkan jika masih ada yang belum</span></span>
+<span id="cb25-420"><a href="#cb25-420" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> station)) <span class="sc">%&gt;%</span></span>
+<span id="cb25-421"><a href="#cb25-421" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">region =</span> <span class="fu">case_when</span>(</span>
+<span id="cb25-422"><a href="#cb25-422" aria-hidden="true" tabindex="-1"></a>    site <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Kawasan A"</span>)  <span class="sc">~</span> <span class="st">"Seksi Wilayah I"</span>,</span>
+<span id="cb25-423"><a href="#cb25-423" aria-hidden="true" tabindex="-1"></a>    site <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Kawasan B"</span>)  <span class="sc">~</span> <span class="st">"Seksi Wilayah II"</span>,</span>
+<span id="cb25-424"><a href="#cb25-424" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Tambahkan seksi lainnya </span></span>
+<span id="cb25-425"><a href="#cb25-425" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> site</span>
+<span id="cb25-426"><a href="#cb25-426" aria-hidden="true" tabindex="-1"></a>  )) </span>
+<span id="cb25-427"><a href="#cb25-427" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-428"><a href="#cb25-428" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-429"><a href="#cb25-429" aria-hidden="true" tabindex="-1"></a>Administrative hierarchy: The management hierarchy pertains to the administration of a specific region in accordance with an institution's organizational framework for regional management (e.g., the Regional Management Section). Administrative structures: Seksi Wilayah (section offices) and individual conservation sites (Cagar Alam, Taman Wisata Alam, Hutan Desa). This classification aligns with Indonesia's conservation area management framework (Minister of Environment and Forestry Regulation No. P.76/Menlhk/Setjen/Kum.1/10/2015).</span>
+<span id="cb25-430"><a href="#cb25-430" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-431"><a href="#cb25-431" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 7: Temporal Classification</span></span>
+<span id="cb25-432"><a href="#cb25-432" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-433"><a href="#cb25-433" aria-hidden="true" tabindex="-1"></a>Temporal variables enable seasonal and trend analysis.</span>
+<span id="cb25-434"><a href="#cb25-434" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-435"><a href="#cb25-435" aria-hidden="true" tabindex="-1"></a><span class="in">```{r phase7}</span></span>
+<span id="cb25-436"><a href="#cb25-436" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb25-437"><a href="#cb25-437" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: true</span></span>
+<span id="cb25-438"><a href="#cb25-438" aria-hidden="true" tabindex="-1"></a>patrol.summary <span class="ot">&lt;-</span> patrol.summary <span class="sc">%&gt;%</span></span>
+<span id="cb25-439"><a href="#cb25-439" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">session =</span> <span class="fu">year</span>(patrol_start_date),</span>
+<span id="cb25-440"><a href="#cb25-440" aria-hidden="true" tabindex="-1"></a>         <span class="at">month =</span> <span class="fu">month</span>(patrol_start_date),</span>
+<span id="cb25-441"><a href="#cb25-441" aria-hidden="true" tabindex="-1"></a>         <span class="at">semester =</span> <span class="fu">ifelse</span>(month <span class="sc">%in%</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>, <span class="dv">1</span>, <span class="dv">2</span>),</span>
+<span id="cb25-442"><a href="#cb25-442" aria-hidden="true" tabindex="-1"></a>         <span class="at">quarter =</span> <span class="fu">case_when</span>(</span>
+<span id="cb25-443"><a href="#cb25-443" aria-hidden="true" tabindex="-1"></a>           month <span class="sc">%in%</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>  <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb25-444"><a href="#cb25-444" aria-hidden="true" tabindex="-1"></a>           month <span class="sc">%in%</span> <span class="dv">4</span><span class="sc">:</span><span class="dv">6</span>  <span class="sc">~</span> <span class="dv">2</span>,</span>
+<span id="cb25-445"><a href="#cb25-445" aria-hidden="true" tabindex="-1"></a>           month <span class="sc">%in%</span> <span class="dv">7</span><span class="sc">:</span><span class="dv">9</span>  <span class="sc">~</span> <span class="dv">3</span>,</span>
+<span id="cb25-446"><a href="#cb25-446" aria-hidden="true" tabindex="-1"></a>           month <span class="sc">%in%</span> <span class="dv">10</span><span class="sc">:</span><span class="dv">12</span> <span class="sc">~</span> <span class="dv">4</span>,</span>
+<span id="cb25-447"><a href="#cb25-447" aria-hidden="true" tabindex="-1"></a>           <span class="cn">TRUE</span> <span class="sc">~</span> <span class="cn">NA_integer_</span></span>
+<span id="cb25-448"><a href="#cb25-448" aria-hidden="true" tabindex="-1"></a>         ))</span>
+<span id="cb25-449"><a href="#cb25-449" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-450"><a href="#cb25-450" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-451"><a href="#cb25-451" aria-hidden="true" tabindex="-1"></a>Rationale: Temporal classification facilitates analysis of seasonal patterns in patrol effort, threat occurrence, and wildlife observations. Quarterly and semester aggregations align with standard conservation reporting cycles (Hockings et al., 2015).</span>
+<span id="cb25-452"><a href="#cb25-452" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-453"><a href="#cb25-453" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 8: Data Distribution</span></span>
+<span id="cb25-454"><a href="#cb25-454" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-455"><a href="#cb25-455" aria-hidden="true" tabindex="-1"></a>Processed data are exported to hierarchical folder structures.</span>
+<span id="cb25-456"><a href="#cb25-456" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-457"><a href="#cb25-457" aria-hidden="true" tabindex="-1"></a><span class="in">```{r phase8}</span></span>
+<span id="cb25-458"><a href="#cb25-458" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb25-459"><a href="#cb25-459" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: true</span></span>
+<span id="cb25-460"><a href="#cb25-460" aria-hidden="true" tabindex="-1"></a><span class="fu">summary_patrol_data</span>(patrol.summary, nationaldb_smart)</span>
+<span id="cb25-461"><a href="#cb25-461" aria-hidden="true" tabindex="-1"></a><span class="fu">threats_patrol_data</span>(patrol.threats, nationaldb_smart)</span>
+<span id="cb25-462"><a href="#cb25-462" aria-hidden="true" tabindex="-1"></a><span class="fu">ff_patrol_data</span>(patrol.fauna.flora, nationaldb_smart)</span>
+<span id="cb25-463"><a href="#cb25-463" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-464"><a href="#cb25-464" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-465"><a href="#cb25-465" aria-hidden="true" tabindex="-1"></a><span class="fu"># Output Validation</span></span>
+<span id="cb25-466"><a href="#cb25-466" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-467"><a href="#cb25-467" aria-hidden="true" tabindex="-1"></a><span class="fu">## Expected Output Structure</span></span>
+<span id="cb25-468"><a href="#cb25-468" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-469"><a href="#cb25-469" aria-hidden="true" tabindex="-1"></a><span class="in">```{r outputfigstr}</span></span>
+<span id="cb25-470"><a href="#cb25-470" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Successful execution generates the following directory structure"</span></span>
+<span id="cb25-471"><a href="#cb25-471" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 6.5</span></span>
+<span id="cb25-472"><a href="#cb25-472" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 6</span></span>
+<span id="cb25-473"><a href="#cb25-473" aria-hidden="true" tabindex="-1"></a><span class="co">#| out-width: "80%"</span></span>
+<span id="cb25-474"><a href="#cb25-474" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb25-475"><a href="#cb25-475" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-476"><a href="#cb25-476" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(<span class="st">"images/succes_folder_output.png"</span>)</span>
+<span id="cb25-477"><a href="#cb25-477" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-478"><a href="#cb25-478" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-479"><a href="#cb25-479" aria-hidden="true" tabindex="-1"></a><span class="fu">## Validation Code</span></span>
+<span id="cb25-480"><a href="#cb25-480" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-481"><a href="#cb25-481" aria-hidden="true" tabindex="-1"></a>Run the following to verify successful execution:</span>
+<span id="cb25-482"><a href="#cb25-482" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-483"><a href="#cb25-483" aria-hidden="true" tabindex="-1"></a><span class="in">```{r valcode}</span></span>
+<span id="cb25-484"><a href="#cb25-484" aria-hidden="true" tabindex="-1"></a><span class="co"># Count exported CSV files</span></span>
+<span id="cb25-485"><a href="#cb25-485" aria-hidden="true" tabindex="-1"></a>csv_files <span class="ot">&lt;-</span> <span class="fu">list.files</span>(nationaldb_smart, <span class="at">pattern =</span> <span class="st">"</span><span class="sc">\\</span><span class="st">.csv$"</span>, </span>
+<span id="cb25-486"><a href="#cb25-486" aria-hidden="true" tabindex="-1"></a>                        <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb25-487"><a href="#cb25-487" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-488"><a href="#cb25-488" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Total CSV files exported:"</span>, <span class="fu">length</span>(csv_files), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-489"><a href="#cb25-489" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-490"><a href="#cb25-490" aria-hidden="true" tabindex="-1"></a><span class="co"># Check directory structure</span></span>
+<span id="cb25-491"><a href="#cb25-491" aria-hidden="true" tabindex="-1"></a>dirs <span class="ot">&lt;-</span> <span class="fu">list.dirs</span>(nationaldb_smart, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">full.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb25-492"><a href="#cb25-492" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Directories created:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-493"><a href="#cb25-493" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dirs)</span>
+<span id="cb25-494"><a href="#cb25-494" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-495"><a href="#cb25-495" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-496"><a href="#cb25-496" aria-hidden="true" tabindex="-1"></a><span class="fu"># Troubleshooting</span></span>
+<span id="cb25-497"><a href="#cb25-497" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-498"><a href="#cb25-498" aria-hidden="true" tabindex="-1"></a><span class="fu">## Common Errors and Solutions</span></span>
+<span id="cb25-499"><a href="#cb25-499" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-500"><a href="#cb25-500" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^**Error**^ | ^**Cause**^ | ^**Solution**^ <span class="pp">|</span></span>
+<span id="cb25-501"><a href="#cb25-501" aria-hidden="true" tabindex="-1"></a><span class="pp">|:-----------------------|:-----------------------|:-----------------------|</span></span>
+<span id="cb25-502"><a href="#cb25-502" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> \^<span class="in">`File not found`</span>\^ <span class="pp">|</span> ^Incorrect&nbsp;file&nbsp;path^ <span class="pp">|</span> ^Verify&nbsp;<span class="in">`base_path`</span>&nbsp;variable&nbsp;matches&nbsp;your&nbsp;directory&nbsp;structure^ <span class="pp">|</span></span>
+<span id="cb25-503"><a href="#cb25-503" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> \^<span class="in">`cannot open connection`</span>\^ <span class="pp">|</span> ^File&nbsp;permission&nbsp;issue^ <span class="pp">|</span> ^Close&nbsp;any&nbsp;open&nbsp;instances&nbsp;of&nbsp;the&nbsp;CSV&nbsp;file&nbsp;(e.g.,&nbsp;in&nbsp;Excel)^ <span class="pp">|</span></span>
+<span id="cb25-504"><a href="#cb25-504" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> \^<span class="in">`object 'current_tabular' not found`</span>\^ <span class="pp">|</span> ^Outdated&nbsp;function&nbsp;file^ <span class="pp">|</span> ^Update&nbsp;function&nbsp;1_fn_smart_data.R<span class="sc">\`</span>&nbsp;with&nbsp;the&nbsp;corrected&nbsp;version^ <span class="pp">|</span></span>
+<span id="cb25-505"><a href="#cb25-505" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^<span class="in">`st_read`</span>&nbsp;error^ <span class="pp">|</span> ^Corrupted&nbsp;or&nbsp;incomplete&nbsp;shapefile^ <span class="pp">|</span> ^Ensure&nbsp;all&nbsp;shapefile&nbsp;components&nbsp;(.shp,&nbsp;.shx,&nbsp;.dbf,&nbsp;.prj)&nbsp;are&nbsp;present^ <span class="pp">|</span></span>
+<span id="cb25-506"><a href="#cb25-506" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^Date&nbsp;parsing&nbsp;NAs^ <span class="pp">|</span> ^Unexpected&nbsp;date&nbsp;format^ <span class="pp">|</span> ^Check&nbsp;raw&nbsp;data&nbsp;for&nbsp;non-standard&nbsp;date&nbsp;strings^ <span class="pp">|</span></span>
+<span id="cb25-507"><a href="#cb25-507" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-508"><a href="#cb25-508" aria-hidden="true" tabindex="-1"></a><span class="fu">## Debugging Mode</span></span>
+<span id="cb25-509"><a href="#cb25-509" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-510"><a href="#cb25-510" aria-hidden="true" tabindex="-1"></a><span class="in">```{r debug}</span></span>
+<span id="cb25-511"><a href="#cb25-511" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb25-512"><a href="#cb25-512" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: true</span></span>
+<span id="cb25-513"><a href="#cb25-513" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable verbose error messages</span></span>
+<span id="cb25-514"><a href="#cb25-514" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">error =</span> recover)</span>
+<span id="cb25-515"><a href="#cb25-515" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-516"><a href="#cb25-516" aria-hidden="true" tabindex="-1"></a><span class="co"># Check data types after each major step</span></span>
+<span id="cb25-517"><a href="#cb25-517" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(all.observation)</span>
+<span id="cb25-518"><a href="#cb25-518" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(patrol.summary)</span>
+<span id="cb25-519"><a href="#cb25-519" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-520"><a href="#cb25-520" aria-hidden="true" tabindex="-1"></a><span class="co"># Identify problematic date values</span></span>
+<span id="cb25-521"><a href="#cb25-521" aria-hidden="true" tabindex="-1"></a>all.observation <span class="sc">%&gt;%</span></span>
+<span id="cb25-522"><a href="#cb25-522" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">is.na</span>(patrol_start_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb25-523"><a href="#cb25-523" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(patrol_start_date) <span class="sc">%&gt;%</span></span>
+<span id="cb25-524"><a href="#cb25-524" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>()</span>
+<span id="cb25-525"><a href="#cb25-525" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-526"><a href="#cb25-526" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-527"><a href="#cb25-527" aria-hidden="true" tabindex="-1"></a><span class="fu"># Best Practices and Recommendations</span></span>
+<span id="cb25-528"><a href="#cb25-528" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-529"><a href="#cb25-529" aria-hidden="true" tabindex="-1"></a><span class="fu">## Data Quality Assurance</span></span>
+<span id="cb25-530"><a href="#cb25-530" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-531"><a href="#cb25-531" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>Regular Validation: Run validation scripts after each data import to detect formatting issues early</span>
+<span id="cb25-532"><a href="#cb25-532" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>Coordinate Reference System: Ensure shapefiles use a projected CRS (e.g., GCS WGS 84/decimal degree) for standardized data type (EPSG:4326 for standardized)</span>
+<span id="cb25-533"><a href="#cb25-533" aria-hidden="true" tabindex="-1"></a><span class="ss">3.  </span>Date Format Consistency: Maintain consistent MDY format in SMART configuration to minimize parsing errors</span>
+<span id="cb25-534"><a href="#cb25-534" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-535"><a href="#cb25-535" aria-hidden="true" tabindex="-1"></a><span class="fu">## Performance Optimization</span></span>
+<span id="cb25-536"><a href="#cb25-536" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-537"><a href="#cb25-537" aria-hidden="true" tabindex="-1"></a>For large datasets (<span class="sc">\&gt;</span>10,000 records), consider these optimizations:</span>
+<span id="cb25-538"><a href="#cb25-538" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-539"><a href="#cb25-539" aria-hidden="true" tabindex="-1"></a><span class="in">```{r optim}</span></span>
+<span id="cb25-540"><a href="#cb25-540" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb25-541"><a href="#cb25-541" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: true</span></span>
+<span id="cb25-542"><a href="#cb25-542" aria-hidden="true" tabindex="-1"></a><span class="co"># Use data.table for faster reading</span></span>
+<span id="cb25-543"><a href="#cb25-543" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb25-544"><a href="#cb25-544" aria-hidden="true" tabindex="-1"></a>all.observation <span class="ot">&lt;-</span> <span class="fu">fread</span>(file_path)</span>
+<span id="cb25-545"><a href="#cb25-545" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-546"><a href="#cb25-546" aria-hidden="true" tabindex="-1"></a><span class="co"># Parallel processing for multiple files</span></span>
+<span id="cb25-547"><a href="#cb25-547" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(future)</span>
+<span id="cb25-548"><a href="#cb25-548" aria-hidden="true" tabindex="-1"></a><span class="fu">plan</span>(multisession, <span class="at">workers =</span> <span class="fu">availableCores</span>() <span class="sc">-</span> <span class="dv">1</span>)</span>
+<span id="cb25-549"><a href="#cb25-549" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-550"><a href="#cb25-550" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-551"><a href="#cb25-551" aria-hidden="true" tabindex="-1"></a><span class="fu"># Version History</span></span>
+<span id="cb25-552"><a href="#cb25-552" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-553"><a href="#cb25-553" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^**Version**^ | ^**Date**^ | ^**Changes**^ <span class="pp">|</span></span>
+<span id="cb25-554"><a href="#cb25-554" aria-hidden="true" tabindex="-1"></a><span class="pp">|:------------------|:------------------|:----------------------------------|</span></span>
+<span id="cb25-555"><a href="#cb25-555" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^2.0^ <span class="pp">|</span> ^2026-06-02^ <span class="pp">|</span> ^Complete&nbsp;rewrite&nbsp;with&nbsp;hierarchical&nbsp;distribution^ <span class="pp">|</span></span>
+<span id="cb25-556"><a href="#cb25-556" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> ^1.0^ <span class="pp">|</span> ^2025-01-15^ <span class="pp">|</span> ^Initial&nbsp;release&nbsp;for&nbsp;Fauna&nbsp;&amp;&nbsp;Flora&nbsp;Indonesia&nbsp;Programme&nbsp;Kalimantan&nbsp;Barat^ <span class="pp">|</span></span>
+<span id="cb25-557"><a href="#cb25-557" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-558"><a href="#cb25-558" aria-hidden="true" tabindex="-1"></a><span class="fu"># Contact and Support</span></span>
+<span id="cb25-559"><a href="#cb25-559" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-560"><a href="#cb25-560" aria-hidden="true" tabindex="-1"></a>For technical support or questions regarding this pipeline, contact me:</span>
+<span id="cb25-561"><a href="#cb25-561" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-562"><a href="#cb25-562" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Email: <span class="co">[</span><span class="ot">jarian.work.1\@gmail.com</span><span class="co">](mailto:jarian.work.1@gmail.com)</span></span>
+<span id="cb25-563"><a href="#cb25-563" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>GitHub: <span class="ot">&lt;https://github.com/HarimauSum4tra&gt;</span></span>
+<span id="cb25-564"><a href="#cb25-564" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>See also My Portfolio: <span class="ot">&lt;https://harimausum4tra.github.io/02_JPR_Portfolio_main/&gt;</span></span>
+<span id="cb25-565"><a href="#cb25-565" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-566"><a href="#cb25-566" aria-hidden="true" tabindex="-1"></a><span class="in">```{r session}</span></span>
+<span id="cb25-567"><a href="#cb25-567" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
+<span id="cb25-568"><a href="#cb25-568" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"## Session Information</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb25-569"><a href="#cb25-569" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"```</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-570"><a href="#cb25-570" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">sessionInfo</span>())</span>
+<span id="cb25-571"><a href="#cb25-571" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">```</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-572"><a href="#cb25-572" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb25-573"><a href="#cb25-573" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-574"><a href="#cb25-574" aria-hidden="true" tabindex="-1"></a><span class="fu"># References</span></span>
+</code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
