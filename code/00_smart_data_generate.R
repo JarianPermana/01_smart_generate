@@ -64,6 +64,8 @@ all.observation <- all.observation %>%
 
 glimpse(all.observation) # check data coloumn format
 
+
+
 ## a. Patrol Summary --------
 ### Run with function helper ------
 patrol.summary <- clean_patrol_summary(
@@ -217,13 +219,26 @@ save.image("D:/0_DataCentre/2_Analysis/01_smart_generate/data/smart_generate_dat
 
 ## Save in folder for next analysis -------
 rdata_objects <- list(
-  all.observation, patrol.summary, patrol.threats, patrol.threats
+  all.observation, patrol.summary, patrol.summary, patrol.threats, patrol.threats
 )
 
-rdata_targets <- file.path(base_path, "2_Analysis/02_smart_analysis/data/smart_generate_data.RData")
+rdata_targets <- c(file.path(base_path, "2_Analysis/01_smart_generate/data/smart_generate_data.RData"),
+"D:/0_DataCentre/2_Analysis/02_smart_analysis/data/smart_generate_data.RData")
 
 for (path in rdata_targets) {
-  save(list = ls(pattern = "^(all|patrol)"),
-       file = path)
-  message("  RData saved in: ", basename(dirname(path)))
+  obj_to_save <- ls(pattern = "^(all|patrol)")
+  save(list = obj_to_save, file = path)
+  message(sprintf(
+    "✓ Saved %d object(s) to:\n  %s\n  (Directory: %s)\n",
+    length(obj_to_save),
+    normalizePath(path),
+    basename(dirname(path))
+  ))
 }
+
+## save track for next analysis -----
+
+patrol.tracks <- st_read(file.path(nationaldb, "SMART/All Observation/All_track.shp")) 
+names(patrol.tracks) <- tolower(names(patrol.tracks))
+
+saveRDS(patrol.tracks, file.path(base_path, "2_Analysis/02_smart_analysis/data/patrol_tracks.rds"))
