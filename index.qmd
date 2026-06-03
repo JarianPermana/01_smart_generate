@@ -2,7 +2,7 @@
 title: "SMART Patrol Data Processing Pipeline"
 subtitle: "A Standardized Workflow for Conservation Area Monitoring Data"
 author:
-  - name: "Jarian Permana"
+  - name: "Jarian Permana, Tutus Ageng"
     affiliation: "Fauna & Flora Indonesia Programme"
     email: "jarian.work.1@gmail.com"
 date: "`r Sys.Date()`"
