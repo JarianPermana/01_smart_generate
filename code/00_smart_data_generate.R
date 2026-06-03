@@ -50,21 +50,27 @@ all.observation <- all.observation %>%
          kategori_temuan_1 = observation_category_1) %>%
   mutate(
     landscape = "Kalimantan Barat",
-    patrol_start_date = lubridate::mdy(patrol_start_date),
-    patrol_end_date = lubridate::mdy(patrol_end_date), 
-    waypoint_date = lubridate::mdy(waypoint_date),
+    patrol_start_date = parse_date_time(patrol_start_date, 
+                                        orders = c("mdy", "dmy", "ymd", "my", "mdy HMS")),
+    patrol_end_date = parse_date_time(patrol_end_date, 
+                                      orders = c("mdy", "dmy", "ymd", "my", "mdy HMS")),
+    waypoint_date = parse_date_time(waypoint_date, 
+                                    orders = c("mdy", "dmy", "ymd", "my", "mdy HMS")),
     waypoint_time_final = as_hms(parse_date_time(waypoint_time, orders = c("HM", "HMS")))
   ) %>%
   select(-waypoint_time) %>% rename(waypoint_time = waypoint_time_final)
+
+
+
 glimpse(all.observation) # check data coloumn format
 
 ## a. Patrol Summary --------
 ### Run with function helper ------
-CPS <- clean_patrol_summary(
+patrol.summary <- clean_patrol_summary(
   file_path = file.path(nationaldb, "SMART/All Observation/All_track.shp"),
   landscape = "Kalimantan Barat") 
 
-patrol.summary <- CPS %>%
+patrol.summary <- patrol.summary %>%
   mutate(patrol_start_date = lubridate::mdy(patrol_sta),
          patrol_end_date = lubridate::mdy(patrol_end),
          patrol_days = as.numeric(patrol_end_date - patrol_start_date + 1)) %>%
@@ -203,4 +209,21 @@ threats_patrol_data(patrol.threats, nationaldb_smart)
 ff_patrol_data(patrol.fauna.flora, nationaldb_smart)
 
 
+
+# Save RData ------
+## Save in this work directory ----
 save.image("D:/0_DataCentre/2_Analysis/01_smart_generate/data/smart_generate_data.RData")
+
+
+## Save in folder for next analysis -------
+rdata_objects <- list(
+  all.observation, patrol.summary, patrol.threats, patrol.threats
+)
+
+rdata_targets <- file.path(base_path, "2_Analysis/02_smart_analysis/data/smart_generate_data.RData")
+
+for (path in rdata_targets) {
+  save(list = ls(pattern = "^(all|patrol)"),
+       file = path)
+  message("  RData saved in: ", basename(dirname(path)))
+}

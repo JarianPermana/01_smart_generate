@@ -106,8 +106,7 @@ summary_patrol_data <- function(patrol.summary, nationaldb_smart, tabular_type =
       ungroup()
     
     # Define filename - PERBAIKAN dengan placeholder
-    filename <- sprintf("Ringkasan Patroli.csv", 
-                        current_region, current_site, current_session)
+    filename <- sprintf("Ringkasan Patroli.csv")
     
     # Save data
     write.csv(filtered_data, file.path(tabular_dir, filename), row.names = FALSE)
@@ -152,8 +151,7 @@ threats_patrol_data <- function(patrol.threats, nationaldb_smart, tabular_type =
       ungroup()
     
     # Define filename - PERBAIKAN
-    filename <- sprintf("Temuan Aktivitas Manusia.csv", 
-                        current_region, current_site, current_session)
+    filename <- sprintf("Temuan Aktivitas Manusia.csv")
     
     # Save data
     write.csv(filtered_data, file.path(tabular_dir, filename), row.names = FALSE)
@@ -196,8 +194,7 @@ ff_patrol_data <- function(patrol.fauna.flora, nationaldb_smart, tabular_type = 
       ungroup()
     
     # Define filename - PERBAIKAN
-    filename <- sprintf("Temuan Hidupan Liar.csv", 
-                        current_region, current_site, current_session)
+    filename <- sprintf("Temuan Hidupan Liar.csv")
     
     # Save data
     write.csv(filtered_data, file.path(tabular_dir, filename), row.names = FALSE)
