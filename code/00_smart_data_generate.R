@@ -1,8 +1,11 @@
 
 # 0. Setup and Packages Install----------------
 rm(list = ls())
-packages_needed <- c("dplyr", "tidyr", "janitor","sp","sf","tidyverse","data.table","utils", "lubridate",
-                     "readr", "mapview", "ggplot2","here", "fs", "readxl", "purrr", "hms")
+packages_needed <- c("dplyr", "tidyr", "janitor","sp","sf","tidyverse",
+                     "data.table","utils", "lubridate",
+                     "readr", "mapview", "ggplot2","here", 
+                     "fs", "readxl", "purrr", "hms",
+                     "flextable")
 
 pk_to_install <- packages_needed [!( packages_needed %in% rownames(installed.packages())  )]
 if(length(pk_to_install)>0 ){
@@ -40,6 +43,21 @@ all.observation <- read_csv(
 )
 
 glimpse(all.observation)
+
+patrol_member_raw <- read_csv(
+  file.path(nationaldb, "SMART/All Observation/Patrol_Member.csv"),
+  show_col_types = FALSE, 
+  skip = 1,  # Skip baris header yang kosong
+  col_names = c("patrol_id", "leader", "member_name", 
+                "patrol_transport_type", "number_of_patrols",
+                "number_of_days", "distance_km"),
+  na = c("", "NA")
+) %>%
+  clean_names() %>%
+  rename(patrol_frequence = number_of_patrols,
+         patrol_days = number_of_days)
+glimpse(patrol_member_raw)
+
 
 
 # 3. Data Cleaning ------
@@ -116,7 +134,21 @@ patrol.summary <- patrol.summary %>%
   
 glimpse(patrol.summary)  
 
-## b. Patrol Threats ---------
+
+## b. Patrol Member -----
+### Join member data dengan patrol summary ----
+patrol_member_summary <- patrol_member_raw %>%
+  filter(!is.na(patrol_frequence)) %>%
+  dplyr::select(patrol_id, member_name) %>%
+  inner_join(
+    patrol.summary,
+    by = "patrol_id"
+  )
+
+glimpse(patrol_member_summary)
+
+
+## c. Patrol Threats ---------
 patrol.threats <- all.observation %>% 
   filter(kategori_temuan_0 == "Aktivitas Manusia") %>%
   mutate(landscape = "Kalimantan Barat") %>%
@@ -150,21 +182,20 @@ glimpse(patrol.threats)
 
 
 
-## c. Patrol Fauna & Flora -------
+## d. Patrol Fauna & Flora -------
 patrol.fauna.flora <- all.observation %>% 
   filter(kategori_temuan_0 == "Satwa Liar" | kategori_temuan_0 == "Tumbuhan") %>%
-  mutate(site = case_when(
-    station %in% c("Resort 1 Kawasan A", "Resort 2 Kawasan A") ~ "Kawasan A",
-    station == "Resort 1 Kawasan B" ~ "Kawasan B",
-    # lanjutkan jika masih ada yang belum
-    TRUE ~ station)) %>%
-  mutate(region = case_when(
-    site %in% c("Kawasan A")  ~ "Seksi Wilayah I",
-    site %in% c("Kawasan B")  ~ "Seksi Wilayah II",
-    # Tambahkan seksi lainnya 
-    TRUE ~ site
-  )) %>%
   mutate(
+    site = case_when(
+      station %in% c("Resort 1 Kawasan A", "Resort 2 Kawasan A") ~ "Kawasan A",
+      station == "Resort 1 Kawasan B" ~ "Kawasan B",
+      TRUE ~ station
+    ),
+    region = case_when(
+      site %in% c("Kawasan A") ~ "Seksi Wilayah I",
+      site %in% c("Kawasan B") ~ "Seksi Wilayah II",
+      TRUE ~ site
+    ),
     session = year(patrol_start_date),
     month = month(patrol_start_date),
     semester = ifelse(month %in% 1:6, 1, 2),
@@ -175,28 +206,60 @@ patrol.fauna.flora <- all.observation %>%
       month %in% 10:12 ~ 4,
       TRUE ~ NA_integer_
     ),
-    # str_trim for erasing space at start and end word
-    Local_Name = str_trim(coalesce(
-      str_extract(jenis_satwa, "^[^-]+"),
-      str_extract(jenis_tumbuhan, "^[^-]+")
-    )),
-    Scientific_Name = str_trim(coalesce(
-      str_extract(jenis_satwa, "[^-]+$"),
-      str_extract(jenis_tumbuhan, "[^-]+$")
-    )),
+    # --- Extraction data ---
+    raw_text = coalesce(jenis_satwa, jenis_tumbuhan),# Gabungkan kedua kolom sumber
+    has_dash = grepl("-", raw_text), # Cek apakah ada tanda "-"
+    Local_Name_raw = str_trim(str_extract(raw_text, "^[^-]+")), # Ekstrak Local_Name: teks sebelum "-"
+    Scientific_Name_raw = str_trim(str_extract(raw_text, "[^-]+$")), # Ekstrak Scientific_Name: teks setelah "-"
+    Local_Name = case_when(
+      !has_dash & grepl("^[A-Z][a-z]+\\s[a-z]", raw_text) ~ NA_character_, # Jika TIDAK ada dash: cek apakah teks berformat Latin
+      !has_dash ~ raw_text, # Jika TIDAK ada dash & bukan Latin: anggap sebagai nama lokal
+      TRUE ~ Local_Name_raw # Jika ADA dash: pakai hasil ekstraksi
+    ),
+    Scientific_Name = case_when(
+      !has_dash & grepl("^[A-Z][a-z]+\\s[a-z]", raw_text) ~ raw_text, # Jika TIDAK ada dash tapi berformat Latin: ini nama ilmiah
+      has_dash ~ Scientific_Name_raw, # Jika ADA dash: pakai hasil ekstraksi
+      TRUE ~ NA_character_
+    ),
+    Scientific_Name = ifelse(
+      is.na(Scientific_Name) | Scientific_Name == "" | Scientific_Name == Local_Name,
+      NA_character_,
+      Scientific_Name
+    ),
+    Local_Name = ifelse(
+      is.na(Local_Name) | Local_Name == "", # Jika Local_Name kosong → isi dari Scientific_Name (untuk kasus hanya nama Latin)
+      NA_character_,
+      Local_Name
+    ),
     satuan = case_when(
       kategori_temuan_0 == "Tumbuhan" ~ "individu",
       kategori_temuan_1 == "Perjumpaan Satwa" ~ "individu",
       TRUE ~ "temuan"
+    ),
+    tipe_temuan = case_when(
+      kategori_temuan_1 == "Perjumpaan Satwa" ~ "Perjumpaan langsung",
+      TRUE ~ tipe_temuan
+    ),
+    jumlah = case_when(
+      jumlah == 0 ~ 1, 
+      TRUE ~ jumlah
     )
   ) %>%
-  select(landscape, region, site, station, patrol_id, patrol_start_date, patrol_end_date,
-         patrol_transport_type, waypoint_date, waypoint_time, x, y, kategori_temuan_0,
-         kategori_temuan_1, Local_Name, Scientific_Name,tipe_temuan, jumlah, satuan,
-         umur_satwa,kondisi_tumbuhan, usia_temuan, month, session, semester, quarter,
-         keterangan)
-
+  dplyr::select(
+    landscape, region, site, station, patrol_id, 
+    patrol_start_date, patrol_end_date, patrol_transport_type, 
+    waypoint_date, waypoint_time, x, y, 
+    kategori_temuan_0, kategori_temuan_1, 
+    Local_Name, Scientific_Name,
+    tipe_temuan, jumlah, satuan,
+    umur_satwa, kondisi_tumbuhan, usia_temuan, 
+    month, session, semester, quarter,
+    keterangan
+  )
 glimpse(patrol.fauna.flora)
+unique(patrol.fauna.flora$tipe_temuan)
+
+
 
 
 # 4. Distribute data to folder database ---------
@@ -219,7 +282,7 @@ save.image("D:/0_DataCentre/2_Analysis/01_smart_generate/data/smart_generate_dat
 
 ## Save in folder for next analysis -------
 rdata_objects <- list(
-  all.observation, patrol.summary, patrol.summary, patrol.threats, patrol.threats
+  all.observation, patrol_member_raw, patrol_member_summary,patrol.summary, patrol.summary, patrol.threats, patrol.threats
 )
 
 rdata_targets <- c(file.path(base_path, "2_Analysis/01_smart_generate/data/smart_generate_data.RData"),
@@ -237,8 +300,10 @@ for (path in rdata_targets) {
 }
 
 ## save track for next analysis -----
-
+management_areas <- st_read(file.path(nationaldb, "SMART/All Observation/site_area.shp"))
+names(management_areas)
 patrol.tracks <- st_read(file.path(nationaldb, "SMART/All Observation/All_track.shp")) 
 names(patrol.tracks) <- tolower(names(patrol.tracks))
 
+saveRDS(management_areas, file.path(base_path, "2_Analysis/02_smart_analysis/data/management_areas.rds"))
 saveRDS(patrol.tracks, file.path(base_path, "2_Analysis/02_smart_analysis/data/patrol_tracks.rds"))
