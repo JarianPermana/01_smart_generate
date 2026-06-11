@@ -28,6 +28,8 @@ lapply(packages_needed , require, character.only = TRUE)
 ## a. Main path ------
 base_path        <- "D:/0_DataCentre"
 analysis         <- file.path(base_path, "2_Analysis/01_smart_generate")
+analysis_analysis <- file.path(base_path, "2_Analysis/02_smart_analysis")
+analysis_dashboard <- file.path(base_path, "2_Analysis/03_smart_dashboard_report")
 nationaldb       <- file.path(base_path, "1_Database")
 nationaldb_smart <- file.path(nationaldb, "SMART")
 output           <- file.path(analysis, "output")
@@ -300,10 +302,27 @@ for (path in rdata_targets) {
 }
 
 ## save track for next analysis -----
+
+# Multiple target directories
+targets <- c(
+  analysis_analysis,
+  file.path(analysis_analysis, "data"),
+  analysis_dashboard,
+  data_folder
+)
+
+# Create directories
+for (dir in targets) dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+
+# Read data
 management_areas <- st_read(file.path(nationaldb, "SMART/All Observation/site_area.shp"))
 names(management_areas)
 patrol.tracks <- st_read(file.path(nationaldb, "SMART/All Observation/All_track.shp")) 
 names(patrol.tracks) <- tolower(names(patrol.tracks))
 
-saveRDS(management_areas, file.path(base_path, "2_Analysis/02_smart_analysis/data/management_areas.rds"))
-saveRDS(patrol.tracks, file.path(base_path, "2_Analysis/02_smart_analysis/data/patrol_tracks.rds"))
+# Save to all targets
+for (target in targets) {
+  saveRDS(management_areas, file.path(target, "management_areas.rds"))
+  saveRDS(patrol.tracks, file.path(target, "patrol_tracks.rds"))
+  cat(sprintf("✓ Saved to: %s\n", target))
+}
